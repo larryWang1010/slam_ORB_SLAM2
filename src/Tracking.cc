@@ -49,13 +49,16 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
 {
     // Load camera parameters from settings file
-
+    // 读取相机参数
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
     float fx = fSettings["Camera.fx"];
     float fy = fSettings["Camera.fy"];
     float cx = fSettings["Camera.cx"];
     float cy = fSettings["Camera.cy"];
 
+    //     |fx  0   cx|
+    // K = |0   fy  cy|
+    //     |0   0   1 |
     cv::Mat K = cv::Mat::eye(3,3,CV_32F);
     K.at<float>(0,0) = fx;
     K.at<float>(1,1) = fy;
@@ -115,12 +118,12 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     int nLevels = fSettings["ORBextractor.nLevels"];
     int fIniThFAST = fSettings["ORBextractor.iniThFAST"];
     int fMinThFAST = fSettings["ORBextractor.minThFAST"];
-
+    // 初始化 orb 特征提取器
     mpORBextractorLeft = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
-
+    // 如果是双目, 初始化一个右目特征提取器
     if(sensor==System::STEREO)
         mpORBextractorRight = new ORBextractor(nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
-
+    // 如果是单目,,在单目初始化的时候调用这个特征提取器不使用 mpORBextractorLeft
     if(sensor==System::MONOCULAR)
         mpIniORBextractor = new ORBextractor(2*nFeatures,fScaleFactor,nLevels,fIniThFAST,fMinThFAST);
 
@@ -195,9 +198,9 @@ cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRe
             cvtColor(imGrayRight,imGrayRight,CV_BGRA2GRAY);
         }
     }
-
+    // 构造Frame
     mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
-
+    // 开始跟踪
     Track();
 
     return mCurrentFrame.mTcw.clone();
@@ -266,7 +269,9 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 
 void Tracking::Track()
 {
-    if(mState==NO_IMAGES_YET)
+    // tracking thread 状态机
+    // 第一帧图像，设置tracking为 未初始化状态
+    if(mState==NO_IMAGES_YET) 
     {
         mState = NOT_INITIALIZED;
     }
@@ -275,11 +280,11 @@ void Tracking::Track()
 
     // Get Map Mutex -> Map cannot be changed
     unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
-
-    if(mState==NOT_INITIALIZED)
+    // 初始化
+    if(mState==NOT_INITIALIZED) 
     {
         if(mSensor==System::STEREO || mSensor==System::RGBD)
-            StereoInitialization();
+            StereoInitialization(); // 如果初始化成功，在这个函数里边 mState 设置为 OK
         else
             MonocularInitialization();
 
@@ -288,23 +293,23 @@ void Tracking::Track()
         if(mState!=OK)
             return;
     }
-    else
+    else // 跟踪
     {
         // System is initialized. Track Frame.
         bool bOK;
 
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
-        if(!mbOnlyTracking)
+        if(!mbOnlyTracking) // 正常 VO 模式，是有建图的
         {
             // Local Mapping is activated. This is the normal behaviour, unless
             // you explicitly activate the "only tracking" mode.
-
+            // 初始化成功
             if(mState==OK)
             {
                 // Local Mapping might have changed some MapPoints tracked in last frame
                 CheckReplacedInLastFrame();
 
-                if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
+                if(mVelocity.empty() || mCurrentFrame.mnId < mnLastRelocFrameId+2)
                 {
                     bOK = TrackReferenceKeyFrame();
                 }
@@ -320,7 +325,7 @@ void Tracking::Track()
                 bOK = Relocalization();
             }
         }
-        else
+        else // 定位模式
         {
             // Localization Mode: Local Mapping is deactivated
 

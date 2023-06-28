@@ -54,10 +54,29 @@ class Tracking
 {  
 
 public:
+    /**
+     * @description: 轨迹跟踪器构造函数
+     * @param {System} *pSys 传入系统管理对象
+     * @param {ORBVocabulary*} pVoc
+     * @param {FrameDrawer} *pFrameDrawer
+     * @param {MapDrawer} *pMapDrawer
+     * @param {Map} *pMap
+     * @param {KeyFrameDatabase*} pKFDB
+     * @param {string} &strSettingPath
+     * @param {int} sensor
+     * @return {*}
+     */
     Tracking(System* pSys, ORBVocabulary* pVoc, FrameDrawer* pFrameDrawer, MapDrawer* pMapDrawer, Map* pMap,
              KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor);
 
     // Preprocess the input and call Track(). Extract features and performs stereo matching.
+    /**
+     * @description: tracking抓取图像构造Frame,然后track
+     * @param {Mat} &imRectLeft 左目矫正后的图像
+     * @param {Mat} &imRectRight 右目矫正后的图像
+     * @param {double} &timestamp 时间戳(对齐后)
+     * @return {*}
+     */    
     cv::Mat GrabImageStereo(const cv::Mat &imRectLeft,const cv::Mat &imRectRight, const double &timestamp);
     cv::Mat GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const double &timestamp);
     cv::Mat GrabImageMonocular(const cv::Mat &im, const double &timestamp);
