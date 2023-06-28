@@ -99,16 +99,17 @@ protected:
     bool mbFinished;
     std::mutex mMutexFinish;
 
-    Map* mpMap;
+    Map* mpMap; // 地图对象
 
-    LoopClosing* mpLoopCloser;
-    Tracking* mpTracker;
+    LoopClosing* mpLoopCloser; //闭环探测器
+    Tracking* mpTracker; // 轨迹跟踪器
 
-    std::list<KeyFrame*> mlNewKeyFrames;
+    // Tracking线程向LocalMapping中插入关键帧是先插入到该队列中
+    std::list<KeyFrame*> mlNewKeyFrames; ///< 等待处理的关键帧列表
 
-    KeyFrame* mpCurrentKeyFrame;
+    KeyFrame* mpCurrentKeyFrame; // 正在处理的关键帧
 
-    std::list<MapPoint*> mlpRecentAddedMapPoints;
+    std::list<MapPoint*> mlpRecentAddedMapPoints;  //处理完的关键帧，如果生成更多地图点，放入该list等待进一步的筛选
 
     std::mutex mMutexNewKFs;
 
