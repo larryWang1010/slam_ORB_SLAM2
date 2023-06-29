@@ -109,6 +109,7 @@ public:
     double mTimeStamp;
 
     // Calibration matrix and OpenCV distortion parameters.
+    // 相机内参和畸变参数
     cv::Mat mK;
     static float fx;
     static float fy;

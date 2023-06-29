@@ -119,7 +119,7 @@ public:
     std::vector<int> mvIniLastMatches;
     std::vector<int> mvIniMatches;
     std::vector<cv::Point2f> mvbPrevMatched;
-    std::vector<cv::Point3f> mvIniP3D;
+    std::vector<cv::Point3f> mvIniP3D; // 特征点深度
     Frame mInitialFrame;
 
     // Lists used to recover the full camera trajectory at the end of the execution.

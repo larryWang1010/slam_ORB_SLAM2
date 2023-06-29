@@ -198,7 +198,7 @@ cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRe
             cvtColor(imGrayRight,imGrayRight,CV_BGRA2GRAY);
         }
     }
-    // 构造Frame
+    // 构造 Frame
     mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
     // 开始跟踪
     Track();
@@ -280,25 +280,26 @@ void Tracking::Track()
 
     // Get Map Mutex -> Map cannot be changed
     unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
-    // 初始化
+    // 1. 初始化
     if(mState==NOT_INITIALIZED) 
     {
         if(mSensor==System::STEREO || mSensor==System::RGBD)
-            StereoInitialization(); // 如果初始化成功，在这个函数里边 mState 设置为 OK
+            StereoInitialization(); // 双目初始化，如果初始化成功，在这个函数里边 mState 被设置为 OK
         else
-            MonocularInitialization();
+            MonocularInitialization(); // 单目初始化
 
         mpFrameDrawer->Update(this);
 
         if(mState!=OK)
             return;
     }
-    else // 跟踪
+    else // 2. 跟踪
     {
         // System is initialized. Track Frame.
         bool bOK;
 
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
+        // VO跟踪有几种模式：1. 正常的VO，会有局部建图 2. 
         if(!mbOnlyTracking) // 正常 VO 模式，是有建图的
         {
             // Local Mapping is activated. This is the normal behaviour, unless
@@ -315,7 +316,7 @@ void Tracking::Track()
                 }
                 else
                 {
-                    bOK = TrackWithMotionModel();
+                    bOK = TrackWithMotionModel(); // calculate 位姿
                     if(!bOK)
                         bOK = TrackReferenceKeyFrame();
                 }
@@ -417,7 +418,7 @@ void Tracking::Track()
         if(bOK)
             mState = OK;
         else
-            mState=LOST;
+            mState = LOST;
 
         // Update drawer
         mpFrameDrawer->Update(this);
@@ -431,7 +432,7 @@ void Tracking::Track()
                 cv::Mat LastTwc = cv::Mat::eye(4,4,CV_32F);
                 mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
                 mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
-                mVelocity = mCurrentFrame.mTcw*LastTwc;
+                mVelocity = mCurrentFrame.mTcw*LastTwc;  // 当前帧相对于上一帧的位姿变化量
             }
             else
                 mVelocity = cv::Mat();
@@ -546,8 +547,8 @@ void Tracking::StereoInitialization()
 
         mpLocalMapper->InsertKeyFrame(pKFini);
 
-        mLastFrame = Frame(mCurrentFrame);
-        mnLastKeyFrameId=mCurrentFrame.mnId;
+        mLastFrame = Frame(mCurrentFrame);  // 构造一个frame存储为上一个普通帧
+        mnLastKeyFrameId=mCurrentFrame.mnId;  //上一个关键帧 id
         mpLastKeyFrame = pKFini;
 
         mvpLocalKeyFrames.push_back(pKFini);
@@ -564,24 +565,26 @@ void Tracking::StereoInitialization()
         mState=OK;
     }
 }
-
+// 单目初始化，1.初始化位姿 2.地图
 void Tracking::MonocularInitialization()
 {
-
+    // 初始化需要两幅图像，作者对于这两幅图像的的选择做了非常严格的筛选，以保证初始化的效果
     if(!mpInitializer)
     {
+        // 1. 筛选一个初始参考帧
         // Set Reference Frame
         if(mCurrentFrame.mvKeys.size()>100)
         {
             mInitialFrame = Frame(mCurrentFrame);
             mLastFrame = Frame(mCurrentFrame);
+            // 将当前帧匹配到的特征点放到 mvbPrevMatched
             mvbPrevMatched.resize(mCurrentFrame.mvKeysUn.size());
             for(size_t i=0; i<mCurrentFrame.mvKeysUn.size(); i++)
                 mvbPrevMatched[i]=mCurrentFrame.mvKeysUn[i].pt;
 
             if(mpInitializer)
                 delete mpInitializer;
-
+            // 2. 用该参考帧构建一个初始化对象用于初始化
             mpInitializer =  new Initializer(mCurrentFrame,1.0,200);
 
             fill(mvIniMatches.begin(),mvIniMatches.end(),-1);
@@ -591,7 +594,9 @@ void Tracking::MonocularInitialization()
     }
     else
     {
+        // 对于第二帧参考帧（mCurrentFrame）的筛选，分为两个步骤
         // Try to initialize
+        // 1. 检查该帧的特征点数
         if((int)mCurrentFrame.mvKeys.size()<=100)
         {
             delete mpInitializer;
@@ -600,22 +605,24 @@ void Tracking::MonocularInitialization()
             return;
         }
 
-        // Find correspondences
+        // Find correspondences 建立一个匹配器，将当前帧与第一帧参考帧匹配
         ORBmatcher matcher(0.9,true);
         int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
 
         // Check if there are enough correspondences
+        // 2. 检查该帧与第一帧参考帧的匹配点对数量
         if(nmatches<100)
         {
             delete mpInitializer;
             mpInitializer = static_cast<Initializer*>(NULL);
             return;
         }
-
+        // 
         cv::Mat Rcw; // Current Camera Rotation
         cv::Mat tcw; // Current Camera Translation
         vector<bool> vbTriangulated; // Triangulated Correspondences (mvIniMatches)
-
+        // 经过层层筛选，现在有两幅图像用于初始化位姿与地图
+        // 在这里才是真正的进行初始化，把位姿初始为单位矩阵，把第一个参考帧的相机位姿当作原点构建世界坐标系，以后的相机位姿估计都是相对于该坐标系的
         if(mpInitializer->Initialize(mCurrentFrame, mvIniMatches, Rcw, tcw, mvIniP3D, vbTriangulated))
         {
             for(size_t i=0, iend=mvIniMatches.size(); i<iend;i++)
@@ -633,23 +640,25 @@ void Tracking::MonocularInitialization()
             Rcw.copyTo(Tcw.rowRange(0,3).colRange(0,3));
             tcw.copyTo(Tcw.rowRange(0,3).col(3));
             mCurrentFrame.SetPose(Tcw);
-
+            // 初始化地图
             CreateInitialMapMonocular();
         }
     }
 }
-
+// 这个函数仅仅在 MonocularInitialization 中初始化时被调用一次
 void Tracking::CreateInitialMapMonocular()
 {
+    // 1. 建图
+    // 还使用 MonocularInitialization 中筛选出的那两帧图像
     // Create KeyFrames
     KeyFrame* pKFini = new KeyFrame(mInitialFrame,mpMap,mpKeyFrameDB);
     KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
 
-
+    // TODO 更新词袋
     pKFini->ComputeBoW();
     pKFcur->ComputeBoW();
 
-    // Insert KFs in the map
+    // Insert KFs in the map  把关键帧插入到地图中
     mpMap->AddKeyFrame(pKFini);
     mpMap->AddKeyFrame(pKFcur);
 
@@ -663,10 +672,10 @@ void Tracking::CreateInitialMapMonocular()
         cv::Mat worldPos(mvIniP3D[i]);
 
         MapPoint* pMP = new MapPoint(worldPos,pKFcur,mpMap);
-
+        // KeyFrame 关联 MapPoint
         pKFini->AddMapPoint(pMP,i);
         pKFcur->AddMapPoint(pMP,mvIniMatches[i]);
-
+        // MapPoint 关联 KeyFrame
         pMP->AddObservation(pKFini,i);
         pMP->AddObservation(pKFcur,mvIniMatches[i]);
 
@@ -677,7 +686,7 @@ void Tracking::CreateInitialMapMonocular()
         mCurrentFrame.mvpMapPoints[mvIniMatches[i]] = pMP;
         mCurrentFrame.mvbOutlier[mvIniMatches[i]] = false;
 
-        //Add to Map
+        //Add to Map  把MapPoints插入到地图中
         mpMap->AddMapPoint(pMP);
     }
 
@@ -689,7 +698,7 @@ void Tracking::CreateInitialMapMonocular()
     cout << "New Map created with " << mpMap->MapPointsInMap() << " points" << endl;
 
     Optimizer::GlobalBundleAdjustemnt(mpMap,20);
-
+    // 2. 初始化尺度
     // Set median depth to 1
     float medianDepth = pKFini->ComputeSceneMedianDepth(2);
     float invMedianDepth = 1.0f/medianDepth;
