@@ -117,10 +117,10 @@ public:
 
     // Initialization Variables (Monocular)
     std::vector<int> mvIniLastMatches;
-    std::vector<int> mvIniMatches;
-    std::vector<cv::Point2f> mvbPrevMatched;
+    std::vector<int> mvIniMatches;           // 记录参考帧中各个特征点与当前帧匹配的特征点索引关系。
+    std::vector<cv::Point2f> mvbPrevMatched; // 放参考帧提取的特征点
     std::vector<cv::Point3f> mvIniP3D; // 特征点深度
-    Frame mInitialFrame;
+    Frame mInitialFrame;               // 参考帧（第一帧）
 
     // Lists used to recover the full camera trajectory at the end of the execution.
     // Basically we store the reference keyframe for each frame and its relative transformation
@@ -182,7 +182,7 @@ protected:
     KeyFrameDatabase* mpKeyFrameDB;
 
     // Initalization (only for monocular)
-    Initializer* mpInitializer;
+    Initializer *mpInitializer; // 初始化器
 
     //Local Map
     KeyFrame* mpReferenceKF;

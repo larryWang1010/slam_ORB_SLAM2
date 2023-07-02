@@ -571,7 +571,7 @@ void Tracking::MonocularInitialization()
     // 初始化需要两幅图像，作者对于这两幅图像的的选择做了非常严格的筛选，以保证初始化的效果
     if(!mpInitializer)
     {
-        // 1. 筛选一个初始参考帧
+        // 1. 筛选一个参考帧（第一帧）
         // Set Reference Frame
         if(mCurrentFrame.mvKeys.size()>100)
         {
@@ -667,8 +667,8 @@ void Tracking::CreateInitialMapMonocular()
     {
         if(mvIniMatches[i]<0)
             continue;
-
-        //Create MapPoint.
+        // TODO 理清这块建立的各种关联
+        // Create MapPoint.
         cv::Mat worldPos(mvIniP3D[i]);
 
         MapPoint* pMP = new MapPoint(worldPos,pKFcur,mpMap);
@@ -681,12 +681,12 @@ void Tracking::CreateInitialMapMonocular()
 
         pMP->ComputeDistinctiveDescriptors();
         pMP->UpdateNormalAndDepth();
-
-        //Fill Current Frame structure
+        // mCurrentFrame 关联 MapPoint
+        // Fill Current Frame structure
         mCurrentFrame.mvpMapPoints[mvIniMatches[i]] = pMP;
         mCurrentFrame.mvbOutlier[mvIniMatches[i]] = false;
 
-        //Add to Map  把MapPoints插入到地图中
+        // Add to Map  Map 关联 MapPoints
         mpMap->AddMapPoint(pMP);
     }
 
@@ -725,7 +725,7 @@ void Tracking::CreateInitialMapMonocular()
             pMP->SetWorldPos(pMP->GetWorldPos()*invMedianDepth);
         }
     }
-
+    // 建立局部地图
     mpLocalMapper->InsertKeyFrame(pKFini);
     mpLocalMapper->InsertKeyFrame(pKFcur);
 
