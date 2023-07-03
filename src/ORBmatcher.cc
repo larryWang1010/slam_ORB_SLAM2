@@ -414,7 +414,7 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
 
     vector<int> vMatchedDistance(F2.mvKeysUn.size(),INT_MAX);
     vector<int> vnMatches21(F2.mvKeysUn.size(),-1);
-
+    // 遍历 F1 中提取的特征点
     for(size_t i1=0, iend1=F1.mvKeysUn.size(); i1<iend1; i1++)
     {
         cv::KeyPoint kp1 = F1.mvKeysUn[i1];
@@ -432,7 +432,7 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
         int bestDist = INT_MAX;
         int bestDist2 = INT_MAX;
         int bestIdx2 = -1;
-
+        // 1. 检查距离
         for(vector<size_t>::iterator vit=vIndices2.begin(); vit!=vIndices2.end(); vit++)
         {
             size_t i2 = *vit;
@@ -440,10 +440,11 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
             cv::Mat d2 = F2.mDescriptors.row(i2);
 
             int dist = DescriptorDistance(d1,d2);
-
+            // 如果比最大距离大，舍弃
             if(vMatchedDistance[i2]<=dist)
                 continue;
-
+            // 根据bestDist 和 bestDist2 筛选两次
+            // 如果小于 bestDist，修正 bestDist 为 ist，bestDist2 为 bestDist
             if(dist<bestDist)
             {
                 bestDist2=bestDist;
@@ -455,10 +456,10 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
                 bestDist2=dist;
             }
         }
-
+        // 2. 检查方向
         if(bestDist<=TH_LOW)
         {
-            if(bestDist<(float)bestDist2*mfNNratio)
+            if(bestDist < (float)bestDist2*mfNNratio)
             {
                 if(vnMatches21[bestIdx2]>=0)
                 {

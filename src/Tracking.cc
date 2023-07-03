@@ -266,10 +266,11 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 
     return mCurrentFrame.mTcw.clone();
 }
-
+// 跟踪线程主要实现函数
 void Tracking::Track()
 {
     // tracking thread 状态机
+
     // 第一帧图像，设置tracking为 未初始化状态
     if(mState==NO_IMAGES_YET) 
     {
@@ -293,13 +294,13 @@ void Tracking::Track()
         if(mState!=OK)
             return;
     }
-    else // 2. 跟踪
+    else // 2. 两两帧相机位姿估计
     {
         // System is initialized. Track Frame.
         bool bOK;
 
         // Initial camera pose estimation using motion model or relocalization (if tracking is lost)
-        // VO跟踪有几种模式：1. 正常的VO，会有局部建图 2. 
+        // VO跟踪有几种模式：1. 正常的VO，会有局部建图  
         if(!mbOnlyTracking) // 正常 VO 模式，是有建图的
         {
             // Local Mapping is activated. This is the normal behaviour, unless
@@ -308,9 +309,9 @@ void Tracking::Track()
             if(mState==OK)
             {
                 // Local Mapping might have changed some MapPoints tracked in last frame
-                CheckReplacedInLastFrame();
-
-                if(mVelocity.empty() || mCurrentFrame.mnId < mnLastRelocFrameId+2)
+                CheckReplacedInLastFrame(); // 检查上一帧
+                // 跟踪关键帧条件：1. 2.  刚完成重定位，使用匀速模型跟踪
+                if(mVelocity.empty() || mCurrentFrame.mnId < mnLastRelocFrameId + 2)
                 {
                     bOK = TrackReferenceKeyFrame();
                 }
@@ -326,7 +327,7 @@ void Tracking::Track()
                 bOK = Relocalization();
             }
         }
-        else // 定位模式
+        else // 2.仅定位，不会建立地图
         {
             // Localization Mode: Local Mapping is deactivated
 
@@ -670,12 +671,12 @@ void Tracking::CreateInitialMapMonocular()
         // TODO 理清这块建立的各种关联
         // Create MapPoint.
         cv::Mat worldPos(mvIniP3D[i]);
-
+        // 构造地图点
         MapPoint* pMP = new MapPoint(worldPos,pKFcur,mpMap);
-        // KeyFrame 关联 MapPoint
+        // KeyFrame 关联 MapPoint：添加地图点到关键帧
         pKFini->AddMapPoint(pMP,i);
         pKFcur->AddMapPoint(pMP,mvIniMatches[i]);
-        // MapPoint 关联 KeyFrame
+        // MapPoint 关联 KeyFrame：记录关键帧的哪个特征点可以观测到该地图点
         pMP->AddObservation(pKFini,i);
         pMP->AddObservation(pKFcur,mvIniMatches[i]);
 
@@ -686,7 +687,7 @@ void Tracking::CreateInitialMapMonocular()
         mCurrentFrame.mvpMapPoints[mvIniMatches[i]] = pMP;
         mCurrentFrame.mvbOutlier[mvIniMatches[i]] = false;
 
-        // Add to Map  Map 关联 MapPoints
+        // Add to Map  Map 关联 MapPoints:地图中添加该 MapPoint
         mpMap->AddMapPoint(pMP);
     }
 
@@ -752,7 +753,7 @@ void Tracking::CreateInitialMapMonocular()
 
 void Tracking::CheckReplacedInLastFrame()
 {
-    for(int i =0; i<mLastFrame.N; i++)
+    for(int i =0; i < mLastFrame.N; i++)
     {
         MapPoint* pMP = mLastFrame.mvpMapPoints[i];
 
@@ -811,7 +812,7 @@ bool Tracking::TrackReferenceKeyFrame()
 
     return nmatchesMap>=10;
 }
-
+// 适用于 双目和RGBD
 void Tracking::UpdateLastFrame()
 {
     // Update pose according to reference keyframe
@@ -964,7 +965,7 @@ bool Tracking::TrackLocalMap()
                 mCurrentFrame.mvpMapPoints[i]->IncreaseFound();
                 if(!mbOnlyTracking)
                 {
-                    if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
+                    if(mCurrentFrame.mvpMapPoints[i]->Observations() > 0)
                         mnMatchesInliers++;
                 }
                 else
