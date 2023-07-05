@@ -210,7 +210,7 @@ protected:
     std::vector< std::vector <std::vector<size_t> > > mGrid;
 
     std::map<KeyFrame*,int> mConnectedKeyFrameWeights;
-    std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;
+    std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;  // 相邻的共视帧
     std::vector<int> mvOrderedWeights;
 
     // Spanning Tree and Loop Edges

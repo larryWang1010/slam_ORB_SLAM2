@@ -682,7 +682,8 @@ void Tracking::CreateInitialMapMonocular()
 
         pMP->ComputeDistinctiveDescriptors();
         pMP->UpdateNormalAndDepth();
-        // mCurrentFrame 关联 MapPoint
+        
+        // mCurrentFrame 关联 MapPoint：添加特征点到当前帧
         // Fill Current Frame structure
         mCurrentFrame.mvpMapPoints[mvIniMatches[i]] = pMP;
         mCurrentFrame.mvbOutlier[mvIniMatches[i]] = false;
@@ -988,34 +989,42 @@ bool Tracking::TrackLocalMap()
         return true;
 }
 
-
+/**
+ * @description: 判断当前帧是否作为关键帧
+ * @return {*} 满足作为关键帧的一系列条件 true
+ */
 bool Tracking::NeedNewKeyFrame()
 {
+    // 仅跟踪模式，不插入关键帧
     if(mbOnlyTracking)
         return false;
 
     // If Local Mapping is freezed by a Loop Closure do not insert keyframes
+    // 如果局部地图被闭环检测使用，不插入关键帧 （？原因）
     if(mpLocalMapper->isStopped() || mpLocalMapper->stopRequested())
         return false;
 
     const int nKFs = mpMap->KeyFramesInMap();
 
     // Do not insert keyframes if not enough frames have passed from last relocalisation
-    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && nKFs>mMaxFrames)
+    // 如果刚完成重定位 并且 ，不插入关键帧
+    if(mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && nKFs > mMaxFrames)
         return false;
-
-    // Tracked MapPoints in the reference keyframe
+    // 在 UpdateLocalKeyFrames 函数中会将与当前关键帧共视程度最高的关键帧设定为当前帧的参考关键帧
+    // Tracked MapPoints in the reference keyframe 
     int nMinObs = 3;
     if(nKFs<=2)
         nMinObs=2;
-    int nRefMatches = mpReferenceKF->TrackedMapPoints(nMinObs);
+    int nRefMatches = mpReferenceKF->TrackedMapPoints(nMinObs); // 获取参考关键帧特征点的数量
 
     // Local Mapping accept keyframes?
+    // mpLocalMapper 是否繁忙
     bool bLocalMappingIdle = mpLocalMapper->AcceptKeyFrames();
 
     // Check how many "close" points are being tracked and how many could be potentially created.
     int nNonTrackedClose = 0;
     int nTrackedClose= 0;
+    // 针对 双目和RGBD 相机
     if(mSensor!=System::MONOCULAR)
     {
         for(int i =0; i<mCurrentFrame.N; i++)
@@ -1032,24 +1041,24 @@ bool Tracking::NeedNewKeyFrame()
 
     bool bNeedToInsertClose = (nTrackedClose<100) && (nNonTrackedClose>70);
 
-    // Thresholds
-    float thRefRatio = 0.75f;
+    // Thresholds 设置特征点的阈值条件
+    float thRefRatio = 0.75f; // inlier 阈值，和上一个 reference kf 的比例
     if(nKFs<2)
         thRefRatio = 0.4f;
 
     if(mSensor==System::MONOCULAR)
         thRefRatio = 0.9f;
 
-    // Condition 1a: More than "MaxFrames" have passed from last keyframe insertion
-    const bool c1a = mCurrentFrame.mnId>=mnLastKeyFrameId+mMaxFrames;
-    // Condition 1b: More than "MinFrames" have passed and Local Mapping is idle
-    const bool c1b = (mCurrentFrame.mnId>=mnLastKeyFrameId+mMinFrames && bLocalMappingIdle);
-    //Condition 1c: tracking is weak
-    const bool c1c =  mSensor!=System::MONOCULAR && (mnMatchesInliers<nRefMatches*0.25 || bNeedToInsertClose) ;
+    // Condition 1a: More than "MaxFrames" have passed from last keyframe insertion 很长时间没有插入关键帧了
+    const bool c1a = mCurrentFrame.mnId >= mnLastKeyFrameId + mMaxFrames;
+    // Condition 1b: More than "MinFrames" have passed and Local Mapping is idle localMapper处于空闲状态
+    const bool c1b = (mCurrentFrame.mnId >= mnLastKeyFrameId + mMinFrames && bLocalMappingIdle);
+    // Condition 1c: tracking is weak
+    const bool c1c =  mSensor != System::MONOCULAR && (mnMatchesInliers < nRefMatches*0.25 || bNeedToInsertClose) ;
     // Condition 2: Few tracked points compared to reference keyframe. Lots of visual odometry compared to map matches.
-    const bool c2 = ((mnMatchesInliers<nRefMatches*thRefRatio|| bNeedToInsertClose) && mnMatchesInliers>15);
-
-    if((c1a||c1b||c1c)&&c2)
+    const bool c2 = ((mnMatchesInliers < nRefMatches*thRefRatio|| bNeedToInsertClose) && mnMatchesInliers > 15);
+    // 最终的一个决策
+    if((c1a||c1b||c1c) && c2)
     {
         // If the mapping accepts keyframes, insert keyframe.
         // Otherwise send a signal to interrupt BA

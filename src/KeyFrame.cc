@@ -193,7 +193,7 @@ vector<KeyFrame*> KeyFrame::GetCovisiblesByWeight(const int &w)
         return vector<KeyFrame*>();
     else
     {
-        int n = it-mvOrderedWeights.begin();
+        int n = it - mvOrderedWeights.begin();
         return vector<KeyFrame*>(mvpOrderedConnectedKeyFrames.begin(), mvpOrderedConnectedKeyFrames.begin()+n);
     }
 }

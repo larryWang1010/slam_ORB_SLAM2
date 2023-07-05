@@ -37,7 +37,7 @@
 namespace ORB_SLAM2
 {
 
-
+// 全局 BA 待优化变量：
 void Optimizer::GlobalBundleAdjustemnt(Map* pMap, int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust)
 {
     vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
@@ -235,36 +235,37 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
     }
 
 }
-
+// 相机位姿优化
 int Optimizer::PoseOptimization(Frame *pFrame)
 {
+    // 优化器
     g2o::SparseOptimizer optimizer;
+    // 线性求解器
     g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
 
     linearSolver = new g2o::LinearSolverDense<g2o::BlockSolver_6_3::PoseMatrixType>();
-
+    // 块求解器
     g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
-
+    // 设置优化器方法
     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
     optimizer.setAlgorithm(solver);
 
     int nInitialCorrespondences=0;
 
-    // Set Frame vertex
+    // Set Frame vertex 顶点为待优化的当前帧Tcw
     g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
-    vSE3->setEstimate(Converter::toSE3Quat(pFrame->mTcw));
-    vSE3->setId(0);
+    vSE3->setEstimate(Converter::toSE3Quat(pFrame->mTcw)); //设置待优化变量
     vSE3->setFixed(false);
-    optimizer.addVertex(vSE3);
+    optimizer.addVertex(vSE3); // 优化器加入顶点
 
-    // Set MapPoint vertices
+    // Set MapPoint vertices 边为特征点的重投影误差  观测(uv)-估计(pnp投影计算结果)
     const int N = pFrame->N;
-
+    // 单目
     vector<g2o::EdgeSE3ProjectXYZOnlyPose*> vpEdgesMono;
     vector<size_t> vnIndexEdgeMono;
     vpEdgesMono.reserve(N);
     vnIndexEdgeMono.reserve(N);
-
+    // 双目
     vector<g2o::EdgeStereoSE3ProjectXYZOnlyPose*> vpEdgesStereo;
     vector<size_t> vnIndexEdgeStereo;
     vpEdgesStereo.reserve(N);
@@ -291,27 +292,30 @@ int Optimizer::PoseOptimization(Frame *pFrame)
                 Eigen::Matrix<double,2,1> obs;
                 const cv::KeyPoint &kpUn = pFrame->mvKeysUn[i];
                 obs << kpUn.pt.x, kpUn.pt.y;
-
+                // 实例化一元边（重投影误差）
                 g2o::EdgeSE3ProjectXYZOnlyPose* e = new g2o::EdgeSE3ProjectXYZOnlyPose();
-
+                // 边设置连接的顶点
                 e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
+                // 边添加观测值（地图点在当前帧中的像素坐标 uv）
                 e->setMeasurement(obs);
                 const float invSigma2 = pFrame->mvInvLevelSigma2[kpUn.octave];
+                // 边设置信息矩阵
                 e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
-
+                // 边设置核函数
                 g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
                 e->setRobustKernel(rk);
                 rk->setDelta(deltaMono);
-
+                // 边设置相机内参
                 e->fx = pFrame->fx;
                 e->fy = pFrame->fy;
                 e->cx = pFrame->cx;
                 e->cy = pFrame->cy;
                 cv::Mat Xw = pMP->GetWorldPos();
+                // 边添加 3D 点（地图点世界坐标）
                 e->Xw[0] = Xw.at<float>(0);
                 e->Xw[1] = Xw.at<float>(1);
                 e->Xw[2] = Xw.at<float>(2);
-
+                // 
                 optimizer.addEdge(e);
 
                 vpEdgesMono.push_back(e);
@@ -379,6 +383,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
         optimizer.optimize(its[it]);
 
         nBad=0;
+        // 单目
         for(size_t i=0, iend=vpEdgesMono.size(); i<iend; i++)
         {
             g2o::EdgeSE3ProjectXYZOnlyPose* e = vpEdgesMono[i];
@@ -407,7 +412,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
             if(it==2)
                 e->setRobustKernel(0);
         }
-
+        // 双目
         for(size_t i=0, iend=vpEdgesStereo.size(); i<iend; i++)
         {
             g2o::EdgeStereoSE3ProjectXYZOnlyPose* e = vpEdgesStereo[i];
@@ -436,7 +441,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
             if(it==2)
                 e->setRobustKernel(0);
         }
-
+        // 待优化的误差项太少，结束
         if(optimizer.edges().size()<10)
             break;
     }    
@@ -445,11 +450,12 @@ int Optimizer::PoseOptimization(Frame *pFrame)
     g2o::VertexSE3Expmap* vSE3_recov = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(0));
     g2o::SE3Quat SE3quat_recov = vSE3_recov->estimate();
     cv::Mat pose = Converter::toCvMat(SE3quat_recov);
-    pFrame->SetPose(pose);
+    pFrame->SetPose(pose); // 优化结束，使用优化之后的位姿更新当前帧的位姿
 
     return nInitialCorrespondences-nBad;
 }
 
+// 相机位姿 + 地图点 优化
 void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap)
 {    
     // Local KeyFrames: First Breath Search from Current Keyframe

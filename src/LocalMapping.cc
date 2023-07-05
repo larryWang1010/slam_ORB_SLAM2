@@ -52,6 +52,7 @@ void LocalMapping::Run()
     while(1)
     {
         // Tracking will see that Local Mapping is busy
+        // 设置 Local Mapping 线程繁忙标志位， 通过 AcceptKeyFrames 查询
         SetAcceptKeyFrames(false);
 
         // Check if there are keyframes in the queue
@@ -124,7 +125,10 @@ bool LocalMapping::CheckNewKeyFrames()
     unique_lock<mutex> lock(mMutexNewKFs);
     return(!mlNewKeyFrames.empty());
 }
-
+/**
+ * @description: 新来一帧关键帧以后，
+ * @return {*}
+ */
 void LocalMapping::ProcessNewKeyFrame()
 {
     {
@@ -138,7 +142,7 @@ void LocalMapping::ProcessNewKeyFrame()
 
     // Associate MapPoints to the new keyframe and update normal and descriptor
     const vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
-
+    // TODO 处理每一个特征点，关联关键帧
     for(size_t i=0; i<vpMapPointMatches.size(); i++)
     {
         MapPoint* pMP = vpMapPointMatches[i];
