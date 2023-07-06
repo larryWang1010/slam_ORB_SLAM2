@@ -39,6 +39,7 @@ class Frame;
 class MapPoint
 {
 public:
+    // 位姿 关键帧 地图 构造MapPoint
     MapPoint(const cv::Mat &Pos, KeyFrame* pRefKF, Map* pMap);
     MapPoint(const cv::Mat &Pos,  Map* pMap, Frame* pFrame, const int &idxF);
 
@@ -48,6 +49,7 @@ public:
     cv::Mat GetNormal();
     KeyFrame* GetReferenceKeyFrame();
 
+    // 该地图点观测到的关键帧
     std::map<KeyFrame*,size_t> GetObservations();
     int Observations();
 

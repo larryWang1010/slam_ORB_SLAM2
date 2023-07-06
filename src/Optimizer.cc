@@ -298,7 +298,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
                 e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(0)));
                 // 边添加观测值（地图点在当前帧中的像素坐标 uv）
                 e->setMeasurement(obs);
-                const float invSigma2 = pFrame->mvInvLevelSigma2[kpUn.octave];
+                const float invSigma2 = pFrame->mvInvLevelSigma2[kpUn.octave]; // 金字塔
                 // 边设置信息矩阵
                 e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
                 // 边设置核函数
@@ -383,7 +383,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
         optimizer.optimize(its[it]);
 
         nBad=0;
-        // 单目
+        // ？？单目
         for(size_t i=0, iend=vpEdgesMono.size(); i<iend; i++)
         {
             g2o::EdgeSE3ProjectXYZOnlyPose* e = vpEdgesMono[i];

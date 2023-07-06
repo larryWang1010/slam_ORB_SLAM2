@@ -151,7 +151,7 @@ public:
     cv::Mat mDescriptors, mDescriptorsRight;
 
     // MapPoints associated to keypoints, NULL pointer if no association.
-    std::vector<MapPoint*> mvpMapPoints;
+    std::vector<MapPoint*> mvpMapPoints;  // 记录当前帧观测到的 MapPoint
 
     // Flag to identify outlier associations.
     std::vector<bool> mvbOutlier;
@@ -169,7 +169,7 @@ public:
     long unsigned int mnId;
 
     // Reference Keyframe.
-    KeyFrame* mpReferenceKF;
+    KeyFrame* mpReferenceKF; // TODO 这个用途是什么？
 
     // Scale pyramid info.
     int mnScaleLevels;

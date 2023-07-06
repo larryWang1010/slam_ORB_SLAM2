@@ -186,7 +186,7 @@ protected:
 
     //Local Map
     KeyFrame* mpReferenceKF;
-    std::vector<KeyFrame*> mvpLocalKeyFrames;
+    std::vector<KeyFrame*> mvpLocalKeyFrames; //用于保存构成局部地图的关键帧集合
     std::vector<MapPoint*> mvpLocalMapPoints;
     
     // System
