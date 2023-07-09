@@ -303,14 +303,15 @@ void Tracking::Track()
         // VO跟踪有几种模式：1. 正常的VO，会有局部建图  2. 仅仅定位
         if(!mbOnlyTracking) // 正常 VO 模式，是有建图的
         {
+            // 初始化成功，要完成位姿估计，检测两个条件
             // Local Mapping is activated. This is the normal behaviour, unless
             // you explicitly activate the "only tracking" mode.
-            // 初始化成功
             if(mState==OK)
             {
+                // 1. 检查上一帧  when changed？
                 // Local Mapping might have changed some MapPoints tracked in last frame
-                CheckReplacedInLastFrame(); // 检查上一帧
-                // 跟踪关键帧条件：1. 2.  刚完成重定位，使用匀速模型跟踪
+                CheckReplacedInLastFrame();
+                // 2. 选择跟踪模式：跟踪关键帧 or 匀速模型。条件：1. 2.  刚完成重定位，使用匀速模型跟踪
                 if(mVelocity.empty() || mCurrentFrame.mnId < mnLastRelocFrameId + 2)
                 {
                     bOK = TrackReferenceKeyFrame();
@@ -318,11 +319,12 @@ void Tracking::Track()
                 else
                 {
                     bOK = TrackWithMotionModel(); // calculate 位姿
+                    // 跟踪失败选择跟踪关键帧
                     if(!bOK)
                         bOK = TrackReferenceKeyFrame();
                 }
             }
-            else
+            else  // TODO 什么情况下，会进行重定位？
             {
                 bOK = Relocalization();
             }
@@ -407,7 +409,7 @@ void Tracking::Track()
             if(bOK)
                 bOK = TrackLocalMap();
         }
-        else
+        else // 纯跟踪
         {
             // mbVO true means that there are few matches to MapPoints in the map. We cannot retrieve
             // a local map and therefore we do not perform TrackLocalMap(). Once the system relocalizes
@@ -433,7 +435,7 @@ void Tracking::Track()
                 cv::Mat LastTwc = cv::Mat::eye(4,4,CV_32F);
                 mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
                 mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
-                mVelocity = mCurrentFrame.mTcw*LastTwc;  // 当前帧相对于上一帧的位姿变化量
+                mVelocity = mCurrentFrame.mTcw*LastTwc;  // 当前帧相对于上一帧的位姿变化量 右乘获取
             }
             else
                 mVelocity = cv::Mat();
@@ -551,9 +553,10 @@ void Tracking::StereoInitialization()
         mLastFrame = Frame(mCurrentFrame);  // 构造一个frame存储为上一个普通帧
         mnLastKeyFrameId=mCurrentFrame.mnId;  //上一个关键帧 id
         mpLastKeyFrame = pKFini;
-
+        // 局部地图跟踪
         mvpLocalKeyFrames.push_back(pKFini);
         mvpLocalMapPoints=mpMap->GetAllMapPoints();
+        // 设置参考关键帧
         mpReferenceKF = pKFini;
         mCurrentFrame.mpReferenceKF = pKFini;
 
@@ -635,7 +638,7 @@ void Tracking::MonocularInitialization()
                 }
             }
 
-            // Set Frame Poses
+            // Set Frame Poses for 第一帧和第二帧
             mInitialFrame.SetPose(cv::Mat::eye(4,4,CV_32F));
             cv::Mat Tcw = cv::Mat::eye(4,4,CV_32F);
             Rcw.copyTo(Tcw.rowRange(0,3).colRange(0,3));
@@ -887,8 +890,8 @@ bool Tracking::TrackWithMotionModel()
     // Update last frame pose according to its reference keyframe
     // Create "visual odometry" points if in Localization Mode
     UpdateLastFrame();
-
-    mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
+    // 估计 当前帧的初值 = 上一帧的位姿变化量 x 上一帧的位姿
+    mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);  // 右乘
 
     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
 
@@ -951,8 +954,8 @@ bool Tracking::TrackLocalMap()
     UpdateLocalMap();
     // 2. 筛选局部地图点
     SearchLocalPoints();
-    // 3. Optimize Pose
-    Optimizer::PoseOptimization(&mCurrentFrame); // 优化单帧位姿
+    // 3. 优化单帧位姿
+    Optimizer::PoseOptimization(&mCurrentFrame); 
     mnMatchesInliers = 0;
 
     // Update MapPoints Statistics
@@ -1360,7 +1363,7 @@ void Tracking::UpdateLocalKeyFrames()
         }
 
     }
-    // 3. 更新当前帧的参考关键帧为 K1 中具有最多共视地图点的关键帧
+    // 3. 更新当前帧的参考关键帧为 K1 集合中具有最多共视地图点的关键帧
     if(pKFmax)
     {
         mpReferenceKF = pKFmax;

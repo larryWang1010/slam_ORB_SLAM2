@@ -226,7 +226,7 @@ protected:
     unsigned int mnLastKeyFrameId;
     unsigned int mnLastRelocFrameId;
 
-    //Motion Model
+    //Motion Model 位姿变化量
     cv::Mat mVelocity;
 
     //Color order (true RGB, false BGR, ignored if grayscale)

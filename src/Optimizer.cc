@@ -235,7 +235,7 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
     }
 
 }
-// 相机位姿优化
+// 相机位姿优化，输入参数 Frame
 int Optimizer::PoseOptimization(Frame *pFrame)
 {
     // 优化器

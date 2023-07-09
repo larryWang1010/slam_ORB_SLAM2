@@ -42,6 +42,7 @@ int main(int argc, char **argv)
     }
 
     // Retrieve paths to images
+    // 加载图像和时间戳
     vector<string> vstrImageFilenames;
     vector<double> vTimestamps;
     LoadImages(string(argv[3]), string(argv[4]), vstrImageFilenames, vTimestamps);
@@ -66,6 +67,9 @@ int main(int argc, char **argv)
     cout << "Images in the sequence: " << nImages << endl << endl;
 
     // Main loop
+    // 两种不同的方法：
+    // 读取图像放到 vector 中，for 循环执行程序（读取数据和程序执行是同步的）
+    // 在 self-calibration 中，读取图像放到环形队列中，while 循环程序查询环形队列（读取数据和程序执行是异步执行的）
     cv::Mat im;
     for(int ni=0; ni<nImages; ni++)
     {
@@ -105,8 +109,7 @@ int main(int argc, char **argv)
             T = vTimestamps[ni+1]-tframe;
         else if(ni>0)
             T = tframe-vTimestamps[ni-1];
-
-        if(ttrack<T)
+        if (ttrack < T)
             usleep((T-ttrack)*1e6);
     }
 
