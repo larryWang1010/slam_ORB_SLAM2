@@ -88,7 +88,7 @@ public:
     static long unsigned int nNextId;
     long int mnFirstKFid;
     long int mnFirstFrame;
-    int nObs;
+    int nObs; // for what ?
 
     // Variables used by the tracking
     float mTrackProjX;

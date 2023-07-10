@@ -1338,18 +1338,19 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
     // 当前帧 世界 --> 相机 旋转和平移矩阵
     const cv::Mat Rcw = CurrentFrame.mTcw.rowRange(0,3).colRange(0,3);
     const cv::Mat tcw = CurrentFrame.mTcw.rowRange(0,3).col(3);
-
+    // 当前帧 相机到世界的平移向量
     const cv::Mat twc = -Rcw.t()*tcw;
-
+    // 上一帧 世界 --> 相机 旋转和平移矩阵
     const cv::Mat Rlw = LastFrame.mTcw.rowRange(0,3).colRange(0,3);
     const cv::Mat tlw = LastFrame.mTcw.rowRange(0,3).col(3);
-
+    // 上一帧 相机到世界的平移向量
     const cv::Mat tlc = Rlw*twc+tlw;
     // for stereo and rgbd
     const bool bForward = tlc.at<float>(2)>CurrentFrame.mb && !bMono;
     const bool bBackward = -tlc.at<float>(2)>CurrentFrame.mb && !bMono;
-
-    for(int i=0; i<LastFrame.N; i++)
+    // 遍历上一帧特征点容器
+    // mvpMapPoints mvbOutlier  一一对应
+    for(int i=0; i < LastFrame.N; i++)
     {
         MapPoint* pMP = LastFrame.mvpMapPoints[i];
 
@@ -1357,7 +1358,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
         {
             if(!LastFrame.mvbOutlier[i])
             {
-                // Project
+                // 获取地图点世界坐标，根据估计的位姿和相机内参投影到当前帧中，得到 uv 坐标
                 cv::Mat x3Dw = pMP->GetWorldPos();
                 cv::Mat x3Dc = Rcw*x3Dw+tcw;
 
@@ -1370,7 +1371,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
 
                 float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx;
                 float v = CurrentFrame.fy*yc*invzc+CurrentFrame.cy;
-
+                // 判断是否出界
                 if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX)
                     continue;
                 if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY)
@@ -1380,55 +1381,58 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
 
                 // Search in a window. Size depends on scale
                 float radius = th*CurrentFrame.mvScaleFactors[nLastOctave];
-
+               
+                // 遍历当前帧（上一帧该特征点）附近的某个区域的特征点，特征点记录在 vIndices2
                 vector<size_t> vIndices2;
-
-                if(bForward)
+                
+                if(bForward) // stereo
                     vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, nLastOctave);
-                else if(bBackward)
+                else if(bBackward)  // rgbd
                     vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, 0, nLastOctave);
-                else
+                else  // mono
                     vIndices2 = CurrentFrame.GetFeaturesInArea(u,v, radius, nLastOctave-1, nLastOctave+1);
 
                 if(vIndices2.empty())
                     continue;
-
+                // 获取特征点（上）描述子
                 const cv::Mat dMP = pMP->GetDescriptor();
 
-                int bestDist = 256;
-                int bestIdx2 = -1;
-
+                int bestDist = 256; // 最佳距离
+                int bestIdx2 = -1;  // 索引
+                // 遍历刚刚记录的当前帧的特征点集合
                 for(vector<size_t>::const_iterator vit=vIndices2.begin(), vend=vIndices2.end(); vit!=vend; vit++)
                 {
                     const size_t i2 = *vit;
+                    // 筛选特征点
+                    // 1. 如果当前帧的特征点已经有对应的地图点，则不再参与匹配
                     if(CurrentFrame.mvpMapPoints[i2])
-                        if(CurrentFrame.mvpMapPoints[i2]->Observations()>0)
+                        if(CurrentFrame.mvpMapPoints[i2]->Observations() > 0)
                             continue;
-
-                    if(CurrentFrame.mvuRight[i2]>0)
+                    // 2. 对于双目和深度相机还需要检查右目的图像特征点是否在搜索半径中
+                    if(CurrentFrame.mvuRight[i2] > 0)
                     {
                         const float ur = u - CurrentFrame.mbf*invzc;
                         const float er = fabs(ur - CurrentFrame.mvuRight[i2]);
-                        if(er>radius)
+                        if(er > radius)
                             continue;
                     }
 
                     const cv::Mat &d = CurrentFrame.mDescriptors.row(i2);
 
                     const int dist = DescriptorDistance(dMP,d);
-
-                    if(dist<bestDist)
+                    // 更新最佳距离及索引
+                    if(dist < bestDist)
                     {
                         bestDist=dist;
                         bestIdx2=i2;
                     }
                 }
-
-                if(bestDist<=TH_HIGH)
+                // 3. 如果最佳匹配距离不超出匹配阈值，以上一帧的地图点作为当前帧的地图点
+                if(bestDist <= TH_HIGH)
                 {
                     CurrentFrame.mvpMapPoints[bestIdx2]=pMP;
                     nmatches++;
-
+                    // 4. 根据角度偏差量直方图对匹配特征点进行筛选
                     if(mbCheckOrientation)
                     {
                         float rot = LastFrame.mvKeysUn[i].angle-CurrentFrame.mvKeysUn[bestIdx2].angle;
