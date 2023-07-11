@@ -401,7 +401,7 @@ int ORBmatcher::SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const vector<MapP
 
     return nmatches;
 }
-
+// 仅仅在单目初始化被调用一次
 int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f> &vbPrevMatched, vector<int> &vnMatches12, int windowSize)
 {
     int nmatches=0;
@@ -422,7 +422,7 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
         if(level1>0)
             continue;
 
-        vector<size_t> vIndices2 = F2.GetFeaturesInArea(vbPrevMatched[i1].x,vbPrevMatched[i1].y, windowSize,level1,level1);
+        vector<size_t> vIndices2 = F2.GetFeaturesInArea(vbPrevMatched[i1].x, vbPrevMatched[i1].y, windowSize, level1, level1);
 
         if(vIndices2.empty())
             continue;
@@ -1325,7 +1325,7 @@ int ORBmatcher::SearchBySim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint*> &
 
     return nFound;
 }
-// 帧间特征点匹配，计算位姿
+// 帧间特征点匹配，返回匹配特征点的数量
 int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono)
 {
     int nmatches = 0;
@@ -1382,7 +1382,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                 // Search in a window. Size depends on scale
                 float radius = th*CurrentFrame.mvScaleFactors[nLastOctave];
                
-                // 遍历当前帧（上一帧该特征点）附近的某个区域的特征点，特征点记录在 vIndices2
+                // 遍历当前帧（上一帧该特征点）所在 grid 的特征点，特征点记录在 vIndices2
                 vector<size_t> vIndices2;
                 
                 if(bForward) // stereo
@@ -1394,7 +1394,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
 
                 if(vIndices2.empty())
                     continue;
-                // 获取特征点（上）描述子
+                // 获取特征点（上一帧）描述子
                 const cv::Mat dMP = pMP->GetDescriptor();
 
                 int bestDist = 256; // 最佳距离
@@ -1404,7 +1404,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                 {
                     const size_t i2 = *vit;
                     // 筛选特征点
-                    // 1. 如果当前帧的特征点已经有对应的地图点，则不再参与匹配
+                    // 1. 如果当前帧的特征点已经有对应的地图点，则不再参与匹配  why？
                     if(CurrentFrame.mvpMapPoints[i2])
                         if(CurrentFrame.mvpMapPoints[i2]->Observations() > 0)
                             continue;
@@ -1435,12 +1435,12 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                     // 4. 根据角度偏差量直方图对匹配特征点进行筛选
                     if(mbCheckOrientation)
                     {
-                        float rot = LastFrame.mvKeysUn[i].angle-CurrentFrame.mvKeysUn[bestIdx2].angle;
+                        float rot = LastFrame.mvKeysUn[i].angle - CurrentFrame.mvKeysUn[bestIdx2].angle;
                         if(rot<0.0)
-                            rot+=360.0f;
-                        int bin = round(rot*factor);
-                        if(bin==HISTO_LENGTH)
-                            bin=0;
+                            rot += 360.0f;
+                        int bin = round(rot * factor); // 将偏差量缩放到 0,1,⋯,HISTO_LENGTH−1 栅格中
+                        if(bin == HISTO_LENGTH)
+                            bin = 0;
                         assert(bin>=0 && bin<HISTO_LENGTH);
                         rotHist[bin].push_back(bestIdx2);
                     }
@@ -1448,16 +1448,16 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
             }
         }
     }
-
+    // 遍历完上一帧所有的特征点以后，可以进一步根据角度偏差直方图对匹配的特征点进行筛选
     //Apply rotation consistency
     if(mbCheckOrientation)
     {
         int ind1=-1;
         int ind2=-1;
         int ind3=-1;
-
+        // 统计直方图中出现频率最高的三个栅格
         ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
-
+        // 剔除 mvpMapPoints 中的该点（设置为 null）
         for(int i=0; i<HISTO_LENGTH; i++)
         {
             if(i!=ind1 && i!=ind2 && i!=ind3)

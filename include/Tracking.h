@@ -185,8 +185,8 @@ protected:
     Initializer *mpInitializer; // 初始化器
 
     //Local Map
-    KeyFrame* mpReferenceKF;
-    std::vector<KeyFrame*> mvpLocalKeyFrames; //用于保存构成局部地图的关键帧集合
+    KeyFrame* mpReferenceKF;                  // 参考关键帧
+    std::vector<KeyFrame*> mvpLocalKeyFrames; // 用于保存构成局部地图的关键帧集合
     std::vector<MapPoint*> mvpLocalMapPoints;
     
     // System
@@ -226,7 +226,7 @@ protected:
     unsigned int mnLastKeyFrameId;
     unsigned int mnLastRelocFrameId;
 
-    //Motion Model 位姿变化量
+    //Motion Model 相机位姿增量
     cv::Mat mVelocity;
 
     //Color order (true RGB, false BGR, ignored if grayscale)

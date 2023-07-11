@@ -240,10 +240,10 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 
     AssignFeaturesToGrid();
 }
-
+// 特征点分布在网格中，加速匹配过程，mGrid 二维数组记录特征点容器 mvKeysUn 的索引
 void Frame::AssignFeaturesToGrid()
 {
-    int nReserve = 0.5f*N/(FRAME_GRID_COLS*FRAME_GRID_ROWS);
+    int nReserve = 0.5f * N / (FRAME_GRID_COLS*FRAME_GRID_ROWS);
     for(unsigned int i=0; i<FRAME_GRID_COLS;i++)
         for (unsigned int j=0; j<FRAME_GRID_ROWS;j++)
             mGrid[i][j].reserve(nReserve);
@@ -337,7 +337,15 @@ bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit)
 
     return true;
 }
-
+/**
+ * @description: 找到在 以x,y为中心,边长为2r的方形内且在[minLevel, maxLevel]的特征点
+ * @param {float} &x 图像坐标u
+ * @param {float } &y 图像坐标v
+ * @param {float } &r 边长
+ * @param {int} minLevel 最小尺度
+ * @param {int} maxLevel 最大尺度
+ * @return {vector<size_t>} 满足条件的特征点的索引
+ */
 vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const float  &r, const int minLevel, const int maxLevel) const
 {
     vector<size_t> vIndices;
@@ -360,7 +368,7 @@ vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const f
         return vIndices;
 
     const bool bCheckLevels = (minLevel>0) || (maxLevel>=0);
-
+    // 遍历整幅图像的各个 grid
     for(int ix = nMinCellX; ix<=nMaxCellX; ix++)
     {
         for(int iy = nMinCellY; iy<=nMaxCellY; iy++)
@@ -368,7 +376,7 @@ vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const f
             const vector<size_t> vCell = mGrid[ix][iy];
             if(vCell.empty())
                 continue;
-
+            // 遍历 grid 区域像素
             for(size_t j=0, jend=vCell.size(); j<jend; j++)
             {
                 const cv::KeyPoint &kpUn = mvKeysUn[vCell[j]];

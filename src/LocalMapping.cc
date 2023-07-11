@@ -43,7 +43,7 @@ void LocalMapping::SetTracker(Tracking *pTracker)
 {
     mpTracker=pTracker;
 }
-
+// local mapping 线程的业务逻辑循环
 void LocalMapping::Run()
 {
 

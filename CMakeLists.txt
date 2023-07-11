@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 2.8)
 project(ORB_SLAM2)
 
+# 编译方式 Release
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
+# 设置编译选项
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native")
 
@@ -25,7 +27,9 @@ elseif(COMPILER_SUPPORTS_CXX0X)
 else()
    message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
-
+# ============ 第三行库的引入使用 =================
+#  cmake 中的 find_package 机制
+# 将工程源码 cmake_modules 目录添加到 find_package 的包搜索路径
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 
 find_package(OpenCV 3.0 QUIET)
@@ -39,15 +43,17 @@ endif()
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(Pangolin REQUIRED)
 
+# =========== 编译 ORB-SLAM2 的核心 ====================
+# 项目头文件目录
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
 )
-
+# 设置动态库保存路径
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
-
+# src目录下的源文件编译成动态库
 add_library(${PROJECT_NAME} SHARED
 src/System.cc
 src/Tracking.cc
@@ -69,7 +75,7 @@ src/Sim3Solver.cc
 src/Initializer.cc
 src/Viewer.cc
 )
-
+# 连接所有的动态库：1. 第三方库 2. 自己编译的库
 target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
 ${EIGEN3_LIBS}

@@ -308,7 +308,7 @@ void Tracking::Track()
             // you explicitly activate the "only tracking" mode.
             if(mState==OK)
             {
-                // 1. 检查上一帧  when changed？
+                // 1. 检查上一帧 TODO when changed？ 
                 // Local Mapping might have changed some MapPoints tracked in last frame
                 CheckReplacedInLastFrame();
                 // 2. 选择跟踪模式：跟踪关键帧 or 匀速模型。条件：1. 2.  刚完成重定位，使用匀速模型跟踪
@@ -318,13 +318,13 @@ void Tracking::Track()
                 }
                 else
                 {
-                    bOK = TrackWithMotionModel(); // calculate 位姿
-                    // 跟踪失败选择跟踪关键帧
+                    // 前一帧和当前帧特征匹配，匹配太少，返回 false，切换跟踪策略：跟踪参考关键帧，继续跟踪
+                    bOK = TrackWithMotionModel(); 
                     if(!bOK)
                         bOK = TrackReferenceKeyFrame();
                 }
             }
-            else  // TODO 什么情况下，会进行重定位？
+            else  // 匀速运动模型和关键帧跟踪都失败后,进行重定位跟踪
             {
                 bOK = Relocalization();
             }
@@ -425,7 +425,7 @@ void Tracking::Track()
 
         // Update drawer
         mpFrameDrawer->Update(this);
-
+        // 生成关键帧
         // If tracking were good, check if we insert a keyframe
         if(bOK)
         {
@@ -478,6 +478,7 @@ void Tracking::Track()
         }
 
         // Reset if the camera get lost soon after initialization
+        // 跟踪失败 且 重定位失败，系统重启
         if(mState==LOST)
         {
             if(mpMap->KeyFramesInMap()<=5)
@@ -760,19 +761,16 @@ void Tracking::CheckReplacedInLastFrame()
     for(int i =0; i < mLastFrame.N; i++)
     {
         MapPoint* pMP = mLastFrame.mvpMapPoints[i];
-
-        if(pMP)
+        if(!pMP) continue; // 这种写法可以避免缩进太多
+        MapPoint* pRep = pMP->GetReplaced();
+        if(pRep)
         {
-            MapPoint* pRep = pMP->GetReplaced();
-            if(pRep)
-            {
-                mLastFrame.mvpMapPoints[i] = pRep;
-            }
+            mLastFrame.mvpMapPoints[i] = pRep;
         }
     }
 }
 
-
+// 跟踪策略2：参考关键帧跟踪
 bool Tracking::TrackReferenceKeyFrame()
 {
     // Compute Bag of Words vector
@@ -882,7 +880,7 @@ void Tracking::UpdateLastFrame()
             break;
     }
 }
-
+// 跟踪策略1：匀速运动跟踪策略
 bool Tracking::TrackWithMotionModel()
 {
     ORBmatcher matcher(0.9,true);
@@ -901,15 +899,17 @@ bool Tracking::TrackWithMotionModel()
         th=15;
     else
         th=7;
+    // 将前一帧特征点投影到当前帧，然后做筛选
     int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
 
     // If few matches, uses a wider window search
+    // 匹配点少于20个时，作者认为太少了，扩大当前帧搜索区域的半径，再匹配一次
     if(nmatches<20)
     {
         fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
         nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,2*th,mSensor==System::MONOCULAR);
     }
-
+    // 如果依旧很少，认为跟踪失败
     if(nmatches<20)
         return false;
 
@@ -1370,7 +1370,7 @@ void Tracking::UpdateLocalKeyFrames()
         mCurrentFrame.mpReferenceKF = mpReferenceKF;
     }
 }
-
+// 跟踪策略3：重定位跟踪
 bool Tracking::Relocalization()
 {
     // Compute Bag of Words Vector

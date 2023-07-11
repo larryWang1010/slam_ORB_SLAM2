@@ -88,7 +88,7 @@ public:
     static long unsigned int nNextId;
     long int mnFirstKFid;
     long int mnFirstFrame;
-    int nObs; // for what ?
+    int nObs; // 记录该特征点被多少个关键帧观测到
 
     // Variables used by the tracking
     float mTrackProjX;

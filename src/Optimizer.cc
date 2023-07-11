@@ -235,15 +235,14 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
     }
 
 }
-// 相机位姿优化，输入参数 Frame
+// 相机位姿优化，输入参数 Frame，根据 pFrame 中已经成功定位的地图点 mvpMapPoints，
+// 通过相机的位姿估计，构建3D-2D的投影关系，最小化投影误差函数，修正相机位姿估计。
 int Optimizer::PoseOptimization(Frame *pFrame)
 {
     // 优化器
     g2o::SparseOptimizer optimizer;
-    // 线性求解器
-    g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
-
-    linearSolver = new g2o::LinearSolverDense<g2o::BlockSolver_6_3::PoseMatrixType>();
+    // 线性求解器，BlockSolver_6_3 指6个自由度，3维空间坐标
+    g2o::BlockSolver_6_3::LinearSolverType * linearSolver = new g2o::LinearSolverDense<g2o::BlockSolver_6_3::PoseMatrixType>();
     // 块求解器
     g2o::BlockSolver_6_3 * solver_ptr = new g2o::BlockSolver_6_3(linearSolver);
     // 设置优化器方法
@@ -251,7 +250,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
     optimizer.setAlgorithm(solver);
 
     int nInitialCorrespondences=0;
-
+    // 设置顶点和边
     // Set Frame vertex 顶点为待优化的当前帧Tcw
     g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
     vSE3->setEstimate(Converter::toSE3Quat(pFrame->mTcw)); //设置待优化变量
@@ -277,7 +276,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
 
     {
     unique_lock<mutex> lock(MapPoint::mGlobalMutex);
-
+    // 遍历地图点，构造边
     for(int i=0; i<N; i++)
     {
         MapPoint* pMP = pFrame->mvpMapPoints[i];
@@ -301,7 +300,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
                 const float invSigma2 = pFrame->mvInvLevelSigma2[kpUn.octave]; // 金字塔
                 // 边设置信息矩阵
                 e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
-                // 边设置核函数
+                // 边设置核函数，采用 Huber 核函数来提供鲁棒的回归估计，降低异常点的负面作用
                 g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
                 e->setRobustKernel(rk);
                 rk->setDelta(deltaMono);
@@ -373,34 +372,36 @@ int Optimizer::PoseOptimization(Frame *pFrame)
     const float chi2Mono[4]={5.991,5.991,5.991,5.991};
     const float chi2Stereo[4]={7.815,7.815,7.815, 7.815};
     const int its[4]={10,10,10,10};    
-
+    // 4轮迭代优化，每轮优化都进行10次迭代
     int nBad=0;
     for(size_t it=0; it<4; it++)
     {
-
+        // 设置初值：当前帧的位姿估计
         vSE3->setEstimate(Converter::toSE3Quat(pFrame->mTcw));
+        // 使用 level 为 0 的边进行优化
         optimizer.initializeOptimization(0);
+        // 10 次迭代
         optimizer.optimize(its[it]);
 
         nBad=0;
-        // ？？单目
+        // 根据 投影误差 对特征点进行筛选，把那些超出阈值的点称为外点抛弃掉
         for(size_t i=0, iend=vpEdgesMono.size(); i<iend; i++)
         {
             g2o::EdgeSE3ProjectXYZOnlyPose* e = vpEdgesMono[i];
 
             const size_t idx = vnIndexEdgeMono[i];
-
+            // 如果对应的地图点被标记为外点，说明没有参与上一轮优化，需要手动计算误差
             if(pFrame->mvbOutlier[idx])
             {
                 e->computeError();
             }
 
             const float chi2 = e->chi2();
-
+            // 判断是否小于阈值，如果小，参与下次优化
             if(chi2>chi2Mono[it])
             {                
                 pFrame->mvbOutlier[idx]=true;
-                e->setLevel(1);
+                e->setLevel(1); //将边的 level 设置为 1，在下一轮中将不参与优化
                 nBad++;
             }
             else
@@ -408,7 +409,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
                 pFrame->mvbOutlier[idx]=false;
                 e->setLevel(0);
             }
-
+            // 第四轮不使用鲁棒核函数
             if(it==2)
                 e->setRobustKernel(0);
         }
@@ -609,7 +610,7 @@ void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap
                     e->setMeasurement(obs);
                     const float &invSigma2 = pKFi->mvInvLevelSigma2[kpUn.octave];
                     e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
-
+                    // 采用 Huber 核函数来提供鲁棒的回归估计，降低异常点的负面作用
                     g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
                     e->setRobustKernel(rk);
                     rk->setDelta(thHuberMono);
