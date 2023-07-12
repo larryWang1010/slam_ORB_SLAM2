@@ -611,8 +611,8 @@ void Tracking::MonocularInitialization()
         }
 
         // Find correspondences 建立一个匹配器，将当前帧与第一帧参考帧匹配
-        ORBmatcher matcher(0.9,true);
-        int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,100);
+        ORBmatcher matcher(0.9, true);
+        int nmatches = matcher.SearchForInitialization(mInitialFrame, mCurrentFrame, mvbPrevMatched, mvIniMatches, 100);
 
         // Check if there are enough correspondences
         // 2. 检查该帧与第一帧参考帧的匹配点对数量

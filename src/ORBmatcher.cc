@@ -404,7 +404,7 @@ int ORBmatcher::SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const vector<MapP
 // 仅仅在单目初始化被调用一次
 int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f> &vbPrevMatched, vector<int> &vnMatches12, int windowSize)
 {
-    int nmatches=0;
+    int nmatches=0; // 匹配点计数器
     vnMatches12 = vector<int>(F1.mvKeysUn.size(),-1);
 
     vector<int> rotHist[HISTO_LENGTH];
@@ -414,14 +414,14 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
 
     vector<int> vMatchedDistance(F2.mvKeysUn.size(),INT_MAX);
     vector<int> vnMatches21(F2.mvKeysUn.size(),-1);
-    // 遍历 F1 中提取的特征点
+    // 遍历 F1 中提取的特征点进行筛选，筛选的条件如下：
     for(size_t i1=0, iend1=F1.mvKeysUn.size(); i1<iend1; i1++)
     {
         cv::KeyPoint kp1 = F1.mvKeysUn[i1];
         int level1 = kp1.octave;
         if(level1>0)
             continue;
-
+        // 记录该特征点对应的当前帧网格中的特征点，记录索引到 vIndices2
         vector<size_t> vIndices2 = F2.GetFeaturesInArea(vbPrevMatched[i1].x, vbPrevMatched[i1].y, windowSize, level1, level1);
 
         if(vIndices2.empty())
@@ -432,54 +432,55 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
         int bestDist = INT_MAX;
         int bestDist2 = INT_MAX;
         int bestIdx2 = -1;
-        // 1. 检查距离
+        // 步骤1 获取该点和当前帧特征点之间的最优距离以及次优距离
         for(vector<size_t>::iterator vit=vIndices2.begin(); vit!=vIndices2.end(); vit++)
         {
             size_t i2 = *vit;
-
+            // 描述子以行存储，一行代表一个特征点的描述子，特征点和描述子的容器具有对应关系
             cv::Mat d2 = F2.mDescriptors.row(i2);
-
+            // 计算距离
             int dist = DescriptorDistance(d1,d2);
-            // 如果比最大距离大，舍弃
-            if(vMatchedDistance[i2]<=dist)
+            // 大于最大距离，舍弃
+            if(dist >= vMatchedDistance[i2])
                 continue;
-            // 根据bestDist 和 bestDist2 筛选两次
-            // 如果小于 bestDist，修正 bestDist 为 ist，bestDist2 为 bestDist
-            if(dist<bestDist)
+            // 根据 bestDist 和 bestDist2(次bestDist，比 bestDist 宽松一点的条件) 筛选
+            if(dist < bestDist) //如果小于 bestDist，修正 bestDist 为 dist，bestDist2 为 bestDist，记录索引
             {
                 bestDist2=bestDist;
                 bestDist=dist;
                 bestIdx2=i2;
             }
-            else if(dist<bestDist2)
+            else if(dist < bestDist2) //如果 介于 bestDist 和 bestDist2 之间，更新 次bestDist2
             {
                 bestDist2=dist;
             }
         }
-        // 2. 检查方向
-        if(bestDist<=TH_LOW)
+        // 步骤2 根据距离阈值和角度投票剔除误匹配
+        if(bestDist <= TH_LOW) // 如果之前记录的描述子之间最小距离小于 TH_LOW 再进一步检查
         {
-            if(bestDist < (float)bestDist2*mfNNratio)
+            // 检查距离
+            if(bestDist < (float)bestDist2 * mfNNratio)
             {
-                if(vnMatches21[bestIdx2]>=0)
+                // 怎么会大于0呢？初始化为-1之后没修改
+                if(vnMatches21[bestIdx2] >= 0)
                 {
                     vnMatches12[vnMatches21[bestIdx2]]=-1;
                     nmatches--;
                 }
-                vnMatches12[i1]=bestIdx2;
-                vnMatches21[bestIdx2]=i1;
-                vMatchedDistance[bestIdx2]=bestDist;
+                vnMatches12[i1]=bestIdx2;  // 记录当前帧特征点索引
+                vnMatches21[bestIdx2]=i1;  // 记录前一帧的特征点索引
+                vMatchedDistance[bestIdx2]=bestDist; // 记录最优距离
                 nmatches++;
-
+                // 是否检查角度
                 if(mbCheckOrientation)
                 {
-                    float rot = F1.mvKeysUn[i1].angle-F2.mvKeysUn[bestIdx2].angle;
-                    if(rot<0.0)
-                        rot+=360.0f;
+                    float rot = F1.mvKeysUn[i1].angle - F2.mvKeysUn[bestIdx2].angle;
+                    if(rot < 0.0)
+                        rot += 360.0f;
                     int bin = round(rot*factor);
-                    if(bin==HISTO_LENGTH)
-                        bin=0;
-                    assert(bin>=0 && bin<HISTO_LENGTH);
+                    if(bin == HISTO_LENGTH)
+                        bin = 0;
+                    assert(bin >= 0 && bin < HISTO_LENGTH);
                     rotHist[bin].push_back(i1);
                 }
             }

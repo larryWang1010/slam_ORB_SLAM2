@@ -413,7 +413,7 @@ bool Frame::PosInGrid(const cv::KeyPoint &kp, int &posX, int &posY)
     return true;
 }
 
-
+// 计算 特征向量
 void Frame::ComputeBoW()
 {
     if(mBowVec.empty())
