@@ -184,11 +184,11 @@ protected:
     // Initalization (only for monocular)
     Initializer *mpInitializer; // 初始化器
 
-    //Local Map
-    KeyFrame* mpReferenceKF;                  // 参考关键帧
-    std::vector<KeyFrame*> mvpLocalKeyFrames; // 用于保存构成局部地图的关键帧集合
-    std::vector<MapPoint*> mvpLocalMapPoints;
-    
+    //! Local Map
+    KeyFrame* mpReferenceKF;                   //! 参考关键帧
+    std::vector<KeyFrame*> mvpLocalKeyFrames;  //! 用于保存构成局部地图的关键帧集合
+    std::vector<MapPoint*> mvpLocalMapPoints;  //! 局部地图点，用于局部地图匹配，主要在TrackLocalMap中使用
+
     // System
     System* mpSystem;
     
@@ -197,7 +197,7 @@ protected:
     FrameDrawer* mpFrameDrawer;
     MapDrawer* mpMapDrawer;
 
-    //Map
+    //! Map 存储全局地图
     Map* mpMap;
 
     //Calibration matrix

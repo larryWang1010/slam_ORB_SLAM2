@@ -42,6 +42,13 @@ ORBmatcher::ORBmatcher(float nnratio, bool checkOri): mfNNratio(nnratio), mbChec
 {
 }
 
+/**
+ * !@description: 图像与地图点匹配 用于局部地图跟踪
+ * @param {Frame} &F
+ * @param {vector<MapPoint*>} &vpMapPoints
+ * @param {float} th
+ * @return {*}
+ */
 int ORBmatcher::SearchByProjection(Frame &F, const vector<MapPoint*> &vpMapPoints, const float th)
 {
     int nmatches=0;
@@ -401,7 +408,15 @@ int ORBmatcher::SearchByProjection(KeyFrame* pKF, cv::Mat Scw, const vector<MapP
 
     return nmatches;
 }
-// 仅仅在单目初始化被调用一次
+/**
+ * @description: 仅仅在单目初始化被调用一次
+ * @param {Frame} &F1 图像1
+ * @param {Frame} &F2 图像2
+ * @param {vector<cv::Point2f>} &vbPrevMatched
+ * @param {vector<int>} &vnMatches12    1中特征点在2中匹配的特征点索引
+ * @param {int} windowSize 搜索的窗口大小
+ * @return {*}
+ */
 int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f> &vbPrevMatched, vector<int> &vnMatches12, int windowSize)
 {
     int nmatches=0; // 匹配点计数器
@@ -439,7 +454,7 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
             // 描述子以行存储，一行代表一个特征点的描述子，特征点和描述子的容器具有对应关系
             cv::Mat d2 = F2.mDescriptors.row(i2);
             // 计算距离
-            int dist = DescriptorDistance(d1,d2);
+            int dist = DescriptorDistance(d1, d2);  // 作者手写如何计算描述子
             // 大于最大距离，舍弃
             if(dist >= vMatchedDistance[i2])
                 continue;
@@ -461,17 +476,16 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
             // 检查距离
             if(bestDist < (float)bestDist2 * mfNNratio)
             {
-                // 怎么会大于0呢？初始化为-1之后没修改
-                if(vnMatches21[bestIdx2] >= 0)
-                {
-                    vnMatches12[vnMatches21[bestIdx2]]=-1;
+                // ！ 怎么会大于0呢？初始化为-1之后没修改
+                if (vnMatches21[bestIdx2] >= 0) {
+                    vnMatches12[vnMatches21[bestIdx2]] = -1;
                     nmatches--;
                 }
                 vnMatches12[i1]=bestIdx2;  // 记录当前帧特征点索引
                 vnMatches21[bestIdx2]=i1;  // 记录前一帧的特征点索引
                 vMatchedDistance[bestIdx2]=bestDist; // 记录最优距离
                 nmatches++;
-                // 是否检查角度
+                // 是否检查角度，方法，原理，目的
                 if(mbCheckOrientation)
                 {
                     float rot = F1.mvKeysUn[i1].angle - F2.mvKeysUn[bestIdx2].angle;
@@ -493,19 +507,19 @@ int ORBmatcher::SearchForInitialization(Frame &F1, Frame &F2, vector<cv::Point2f
         int ind1=-1;
         int ind2=-1;
         int ind3=-1;
-
+        // 获取 三个特征点最多的三个区间
         ComputeThreeMaxima(rotHist,HISTO_LENGTH,ind1,ind2,ind3);
-
+        // 遍历三个区间
         for(int i=0; i<HISTO_LENGTH; i++)
         {
             if(i==ind1 || i==ind2 || i==ind3)
                 continue;
+            // 遍历该区间特征点
             for(size_t j=0, jend=rotHist[i].size(); j<jend; j++)
             {
                 int idx1 = rotHist[i][j];
-                if(vnMatches12[idx1]>=0)
-                {
-                    vnMatches12[idx1]=-1;
+                if (vnMatches12[idx1] >= 0) {
+                    vnMatches12[idx1] = -1;
                     nmatches--;
                 }
             }
@@ -1326,7 +1340,15 @@ int ORBmatcher::SearchBySim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint*> &
 
     return nFound;
 }
-// 帧间特征点匹配，返回匹配特征点的数量
+
+/**
+ * !@description: 帧间特征点匹配，返回匹配特征点的数量
+ * @param {Frame} &CurrentFrame 当前帧
+ * @param {Frame} &LastFrame 前一帧
+ * @param {float} th
+ * @param {bool} bMono 是否为单目
+ * @return {*} 匹配的特征点数量
+ */
 int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, const float th, const bool bMono)
 {
     int nmatches = 0;
@@ -1349,7 +1371,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
     // for stereo and rgbd
     const bool bForward = tlc.at<float>(2)>CurrentFrame.mb && !bMono;
     const bool bBackward = -tlc.at<float>(2)>CurrentFrame.mb && !bMono;
-    // 遍历上一帧特征点容器
+    // 遍历上一帧地图点容器
     // mvpMapPoints mvbOutlier  一一对应
     for(int i=0; i < LastFrame.N; i++)
     {
@@ -1359,7 +1381,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
         {
             if(!LastFrame.mvbOutlier[i])
             {
-                // 获取地图点世界坐标，根据估计的位姿和相机内参投影到当前帧中，得到 uv 坐标
+                // 获取地图点世界坐标，根据估计的位姿和相机内参投影到当前帧中，得到像素坐标uv
                 cv::Mat x3Dw = pMP->GetWorldPos();
                 cv::Mat x3Dc = Rcw*x3Dw+tcw;
 
@@ -1372,7 +1394,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
 
                 float u = CurrentFrame.fx*xc*invzc+CurrentFrame.cx;
                 float v = CurrentFrame.fy*yc*invzc+CurrentFrame.cy;
-                // 判断是否出界
+                // 判断像素坐标是否出界
                 if(u<CurrentFrame.mnMinX || u>CurrentFrame.mnMaxX)
                     continue;
                 if(v<CurrentFrame.mnMinY || v>CurrentFrame.mnMaxY)
@@ -1400,12 +1422,12 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
 
                 int bestDist = 256; // 最佳距离
                 int bestIdx2 = -1;  // 索引
-                // 遍历刚刚记录的当前帧的特征点集合
+                // 计算该特征点描述子（上一帧）与当前帧所有特征点描述子之间的距离，记录下最端距离及该特征点在vIndices2中的索引
                 for(vector<size_t>::const_iterator vit=vIndices2.begin(), vend=vIndices2.end(); vit!=vend; vit++)
                 {
                     const size_t i2 = *vit;
                     // 筛选特征点
-                    // 1. 如果当前帧的特征点已经有对应的地图点，则不再参与匹配  why？
+                    // todo 不理解 why？ 1. 如果当前帧的特征点已经有对应的地图点，则不再参与匹配
                     if(CurrentFrame.mvpMapPoints[i2])
                         if(CurrentFrame.mvpMapPoints[i2]->Observations() > 0)
                             continue;
@@ -1428,12 +1450,13 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                         bestIdx2=i2;
                     }
                 }
-                // 3. 如果最佳匹配距离不超出匹配阈值，以上一帧的地图点作为当前帧的地图点
+                // 3. 如果最佳匹配距离不超出匹配阈值， mvpMapPoints
                 if(bestDist <= TH_HIGH)
                 {
+                    //* 以上一帧的地图点构建当前帧的地图点
                     CurrentFrame.mvpMapPoints[bestIdx2]=pMP;
                     nmatches++;
-                    // 4. 根据角度偏差量直方图对匹配特征点进行筛选
+                    // 4. 根据角度偏差量直方图对匹配地图点进行筛选
                     if(mbCheckOrientation)
                     {
                         float rot = LastFrame.mvKeysUn[i].angle - CurrentFrame.mvKeysUn[bestIdx2].angle;
@@ -1449,8 +1472,8 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
             }
         }
     }
-    // 遍历完上一帧所有的特征点以后，可以进一步根据角度偏差直方图对匹配的特征点进行筛选
-    //Apply rotation consistency
+    // 遍历完上一帧所有的特征点以后，可以进一步根据角度偏差直方图对匹配的地图点进行筛选
+    // Apply rotation consistency
     if(mbCheckOrientation)
     {
         int ind1=-1;
@@ -1474,7 +1497,15 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
 
     return nmatches;
 }
-
+/**
+ * @description: 用于重定位
+ * @param {Frame} &CurrentFrame
+ * @param {KeyFrame} *pKF
+ * @param {set<MapPoint*>} &sAlreadyFound
+ * @param {float} th
+ * @param {int} ORBdist
+ * @return {*}
+ */
 int ORBmatcher::SearchByProjection(Frame &CurrentFrame, KeyFrame *pKF, const set<MapPoint*> &sAlreadyFound, const float th , const int ORBdist)
 {
     int nmatches = 0;
@@ -1603,47 +1634,38 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, KeyFrame *pKF, const set
 
     return nmatches;
 }
-
+// 统计特征点最多的三个区间，ind1 ind2 ind3 区间索引
 void ORBmatcher::ComputeThreeMaxima(vector<int>* histo, const int L, int &ind1, int &ind2, int &ind3)
 {
-    int max1=0;
-    int max2=0;
-    int max3=0;
-
-    for(int i=0; i<L; i++)
-    {
-        const int s = histo[i].size();
-        if(s>max1)
-        {
-            max3=max2;
-            max2=max1;
-            max1=s;
-            ind3=ind2;
-            ind2=ind1;
-            ind1=i;
-        }
-        else if(s>max2)
-        {
-            max3=max2;
-            max2=s;
-            ind3=ind2;
-            ind2=i;
-        }
-        else if(s>max3)
-        {
-            max3=s;
-            ind3=i;
+    int max1 = 0;  // 最多
+    int max2 = 0;  // 中间
+    int max3 = 0;  // 最少
+    // 遍历每个区间
+    for (int i = 0; i < L; i++) {
+        const int s = histo[i].size();  // 区间大小
+        if (s > max1) {
+            max3 = max2;
+            max2 = max1;
+            max1 = s;
+            ind3 = ind2;
+            ind2 = ind1;
+            ind1 = i;
+        } else if (s > max2) {
+            max3 = max2;
+            max2 = s;
+            ind3 = ind2;
+            ind2 = i;
+        } else if (s > max3) {
+            max3 = s;
+            ind3 = i;
         }
     }
-
-    if(max2<0.1f*(float)max1)
-    {
-        ind2=-1;
-        ind3=-1;
-    }
-    else if(max3<0.1f*(float)max1)
-    {
-        ind3=-1;
+    // 如果大部分集中在一个区间，直接舍弃另外两个区间
+    if (max2 < 0.1f * (float)max1) {
+        ind2 = -1;
+        ind3 = -1;
+    } else if (max3 < 0.1f * (float)max1) {
+        ind3 = -1;
     }
 }
 

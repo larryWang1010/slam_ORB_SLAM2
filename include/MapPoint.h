@@ -38,7 +38,7 @@ class Frame;
 
 class MapPoint
 {
-public:
+   public:
     // 位姿 关键帧 地图 构造MapPoint
     MapPoint(const cv::Mat &Pos, KeyFrame* pRefKF, Map* pMap);
     MapPoint(const cv::Mat &Pos,  Map* pMap, Frame* pFrame, const int &idxF);
@@ -52,7 +52,7 @@ public:
     // 该地图点观测到的关键帧
     std::map<KeyFrame*,size_t> GetObservations();
     int Observations();
-
+    // ! when happen
     void AddObservation(KeyFrame* pKF,size_t idx);
     void EraseObservation(KeyFrame* pKF);
 
@@ -83,12 +83,12 @@ public:
     int PredictScale(const float &currentDist, KeyFrame*pKF);
     int PredictScale(const float &currentDist, Frame* pF);
 
-public:
+   public:
     long unsigned int mnId;
     static long unsigned int nNextId;
     long int mnFirstKFid;
     long int mnFirstFrame;
-    int nObs; // 记录该特征点被多少个关键帧观测到
+    int nObs;  //* 记录该特征点被多少个关键帧观测到
 
     // Variables used by the tracking
     float mTrackProjX;
@@ -114,39 +114,38 @@ public:
 
     static std::mutex mGlobalMutex;
 
-protected:    
+   protected:
+    //* Position in absolute coordinates
+    cv::Mat mWorldPos;
 
-     // Position in absolute coordinates
-     cv::Mat mWorldPos;
+    //! Keyframes observing the point and associated index in keyframe
+    std::map<KeyFrame*, size_t> mObservations;
 
-     // Keyframes observing the point and associated index in keyframe
-     std::map<KeyFrame*,size_t> mObservations;
+    // Mean viewing direction
+    cv::Mat mNormalVector;
 
-     // Mean viewing direction
-     cv::Mat mNormalVector;
+    // Best descriptor to fast matching
+    cv::Mat mDescriptor;
 
-     // Best descriptor to fast matching
-     cv::Mat mDescriptor;
+    //* Reference KeyFrame
+    KeyFrame* mpRefKF;
 
-     // Reference KeyFrame
-     KeyFrame* mpRefKF;
+    // Tracking counters
+    int mnVisible;
+    int mnFound;
 
-     // Tracking counters
-     int mnVisible;
-     int mnFound;
+    // Bad flag (we do not currently erase MapPoint from memory)
+    bool mbBad;
+    MapPoint* mpReplaced;
 
-     // Bad flag (we do not currently erase MapPoint from memory)
-     bool mbBad;
-     MapPoint* mpReplaced;
+    // Scale invariance distances
+    float mfMinDistance;
+    float mfMaxDistance;
 
-     // Scale invariance distances
-     float mfMinDistance;
-     float mfMaxDistance;
+    Map* mpMap;
 
-     Map* mpMap;
-
-     std::mutex mMutexPos;
-     std::mutex mMutexFeatures;
+    std::mutex mMutexPos;
+    std::mutex mMutexFeatures;
 };
 
 } //namespace ORB_SLAM

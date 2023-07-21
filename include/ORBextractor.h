@@ -82,7 +82,7 @@ public:
         return mvInvLevelSigma2;
     }
 
-    std::vector<cv::Mat> mvImagePyramid;
+    std::vector<cv::Mat> mvImagePyramid; // vector 容器存储图像金字塔
 
 protected:
 
@@ -93,18 +93,18 @@ protected:
 
     void ComputeKeyPointsOld(std::vector<std::vector<cv::KeyPoint> >& allKeypoints);
     std::vector<cv::Point> pattern;
-
-    int nfeatures;
+    // 通过 yaml 配置
+    int nfeatures; // 一幅图像最多特征点数量
     double scaleFactor;
-    int nlevels;
-    int iniThFAST;
-    int minThFAST;
+    int nlevels; // 金字塔层数
+    int iniThFAST; // cell 最多 features 数量
+    int minThFAST; // cell 最少 features 数量
 
     std::vector<int> mnFeaturesPerLevel;
 
     std::vector<int> umax;
 
-    std::vector<float> mvScaleFactor;
+    std::vector<float> mvScaleFactor; // 金字塔每一层对应的缩放因子
     std::vector<float> mvInvScaleFactor;    
     std::vector<float> mvLevelSigma2;
     std::vector<float> mvInvLevelSigma2;

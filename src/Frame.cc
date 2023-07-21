@@ -35,7 +35,11 @@ float Frame::mfGridElementWidthInv, Frame::mfGridElementHeightInv;
 Frame::Frame()
 {}
 
-//Copy Constructor
+/**
+ * @description: Copy Constructor
+ * @param {Frame} &frame
+ * @return {*}
+ */
 Frame::Frame(const Frame &frame)
     :mpORBvocabulary(frame.mpORBvocabulary), mpORBextractorLeft(frame.mpORBextractorLeft), mpORBextractorRight(frame.mpORBextractorRight),
      mTimeStamp(frame.mTimeStamp), mK(frame.mK.clone()), mDistCoef(frame.mDistCoef.clone()),
@@ -129,7 +133,19 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 
     AssignFeaturesToGrid();
 }
-//  RGBD构造函数
+/**
+ * @description: RGBD构造函数
+ * @param {Mat} &imGray
+ * @param {Mat} &imDepth
+ * @param {double} &timeStamp
+ * @param {ORBextractor*} extractor
+ * @param {ORBVocabulary*} voc
+ * @param {Mat} &K
+ * @param {Mat} &distCoef
+ * @param {float} &bf
+ * @param {float} &thDepth
+ * @return {*}
+ */
 Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
@@ -184,7 +200,18 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     AssignFeaturesToGrid();
 }
 
-// 单目
+/**
+ * @description: 单目构造函数
+ * @param {Mat} &imGray                 灰度图
+ * @param {double} &timeStamp           时间戳
+ * @param {ORBextractor*} extractor     特征提取器
+ * @param {ORBVocabulary*} voc          字典
+ * @param {Mat} &K                      相机内参
+ * @param {Mat} &distCoef               畸变参数
+ * @param {float} &bf
+ * @param {float} &thDepth
+ * @return {*}
+ */
 Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
@@ -201,7 +228,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
     mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
 
-    // ORB extraction
+    // 1. ORB extraction
     ExtractORB(0,imGray);
 
     N = mvKeys.size();
@@ -257,7 +284,12 @@ void Frame::AssignFeaturesToGrid()
             mGrid[nGridPosX][nGridPosY].push_back(i);
     }
 }
-
+/**
+ * @description: 调用特征提取器进行特征提取和描述子计算
+ * @param {int} flag 单目 双目标志位
+ * @param {Mat} &im 图像
+ * @return {*}
+ */
 void Frame::ExtractORB(int flag, const cv::Mat &im)
 {
     if(flag==0)
@@ -348,52 +380,40 @@ bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit)
  */
 vector<size_t> Frame::GetFeaturesInArea(const float &x, const float  &y, const float  &r, const int minLevel, const int maxLevel) const
 {
-    vector<size_t> vIndices;
+    vector<size_t> vIndices;  // 记录 mvKeysUn 中的索引
     vIndices.reserve(N);
 
-    const int nMinCellX = max(0,(int)floor((x-mnMinX-r)*mfGridElementWidthInv));
-    if(nMinCellX>=FRAME_GRID_COLS)
-        return vIndices;
+    const int nMinCellX = max(0, (int)floor((x - mnMinX - r) * mfGridElementWidthInv));
+    if (nMinCellX >= FRAME_GRID_COLS) return vIndices;
 
-    const int nMaxCellX = min((int)FRAME_GRID_COLS-1,(int)ceil((x-mnMinX+r)*mfGridElementWidthInv));
-    if(nMaxCellX<0)
-        return vIndices;
+    const int nMaxCellX = min((int)FRAME_GRID_COLS - 1, (int)ceil((x - mnMinX + r) * mfGridElementWidthInv));
+    if (nMaxCellX < 0) return vIndices;
 
-    const int nMinCellY = max(0,(int)floor((y-mnMinY-r)*mfGridElementHeightInv));
-    if(nMinCellY>=FRAME_GRID_ROWS)
-        return vIndices;
+    const int nMinCellY = max(0, (int)floor((y - mnMinY - r) * mfGridElementHeightInv));
+    if (nMinCellY >= FRAME_GRID_ROWS) return vIndices;
 
-    const int nMaxCellY = min((int)FRAME_GRID_ROWS-1,(int)ceil((y-mnMinY+r)*mfGridElementHeightInv));
-    if(nMaxCellY<0)
-        return vIndices;
+    const int nMaxCellY = min((int)FRAME_GRID_ROWS - 1, (int)ceil((y - mnMinY + r) * mfGridElementHeightInv));
+    if (nMaxCellY < 0) return vIndices;
 
-    const bool bCheckLevels = (minLevel>0) || (maxLevel>=0);
+    const bool bCheckLevels = (minLevel > 0) || (maxLevel >= 0);
     // 遍历整幅图像的各个 grid
-    for(int ix = nMinCellX; ix<=nMaxCellX; ix++)
-    {
-        for(int iy = nMinCellY; iy<=nMaxCellY; iy++)
-        {
+    for (int ix = nMinCellX; ix <= nMaxCellX; ix++) {
+        for (int iy = nMinCellY; iy <= nMaxCellY; iy++) {
             const vector<size_t> vCell = mGrid[ix][iy];
-            if(vCell.empty())
-                continue;
+            if (vCell.empty()) continue;
             // 遍历 grid 区域像素
-            for(size_t j=0, jend=vCell.size(); j<jend; j++)
-            {
-                const cv::KeyPoint &kpUn = mvKeysUn[vCell[j]];
-                if(bCheckLevels)
-                {
-                    if(kpUn.octave<minLevel)
-                        continue;
-                    if(maxLevel>=0)
-                        if(kpUn.octave>maxLevel)
-                            continue;
+            for (size_t j = 0, jend = vCell.size(); j < jend; j++) {
+                const cv::KeyPoint& kpUn = mvKeysUn[vCell[j]];
+                if (bCheckLevels) {
+                    if (kpUn.octave < minLevel) continue;
+                    if (maxLevel >= 0)
+                        if (kpUn.octave > maxLevel) continue;
                 }
 
-                const float distx = kpUn.pt.x-x;
-                const float disty = kpUn.pt.y-y;
+                const float distx = kpUn.pt.x - x;
+                const float disty = kpUn.pt.y - y;
 
-                if(fabs(distx)<r && fabs(disty)<r)
-                    vIndices.push_back(vCell[j]);
+                if (fabs(distx) < r && fabs(disty) < r) vIndices.push_back(vCell[j]);
             }
         }
     }

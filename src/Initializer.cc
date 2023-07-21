@@ -40,7 +40,7 @@ Initializer::Initializer(const Frame &ReferenceFrame, float sigma, int iteration
     mSigma2 = sigma*sigma;
     mMaxIterations = iterations;
 }
-// 系统初始化
+// 系统初始化，根据 F 或 H 矩阵恢复位姿
 bool Initializer::Initialize(const Frame &CurrentFrame, const vector<int> &vMatches12, cv::Mat &R21, cv::Mat &t21,
                              vector<cv::Point3f> &vP3D, vector<bool> &vbTriangulated)
 {
@@ -74,7 +74,7 @@ bool Initializer::Initialize(const Frame &CurrentFrame, const vector<int> &vMatc
         vAllIndices.push_back(i);
     }
 
-    // Generate sets of 8 points for each RANSAC iteration
+    // Generate sets of 8 points for each RANSAC iteration in FindHomography and FindFundamental
     mvSets = vector< vector<size_t> >(mMaxIterations,vector<size_t>(8,0));
 
     DUtils::Random::SeedRandOnce(0);
@@ -171,7 +171,7 @@ void Initializer::FindHomography(vector<bool> &vbMatchesInliers, float &score, c
     }
 }
 
-
+// 计算基础矩阵，输出三个参数： 内点标志位，打分情况，归一化矩阵
 void Initializer::FindFundamental(vector<bool> &vbMatchesInliers, float &score, cv::Mat &F21)
 {
     // Number of putative matches
@@ -180,8 +180,8 @@ void Initializer::FindFundamental(vector<bool> &vbMatchesInliers, float &score, 
     // Normalize coordinates
     vector<cv::Point2f> vPn1, vPn2;
     cv::Mat T1, T2;
-    Normalize(mvKeys1,vPn1, T1);
-    Normalize(mvKeys2,vPn2, T2);
+    Normalize(mvKeys1, vPn1, T1);
+    Normalize(mvKeys2, vPn2, T2);
     cv::Mat T2t = T2.t();
 
     // Best Results variables
@@ -745,7 +745,7 @@ void Initializer::Triangulate(const cv::KeyPoint &kp1, const cv::KeyPoint &kp2, 
     x3D = vt.row(3).t();
     x3D = x3D.rowRange(0,3)/x3D.at<float>(3);
 }
-
+// 归一化
 void Initializer::Normalize(const vector<cv::KeyPoint> &vKeys, vector<cv::Point2f> &vNormalizedPoints, cv::Mat &T)
 {
     float meanX = 0;
@@ -753,16 +753,16 @@ void Initializer::Normalize(const vector<cv::KeyPoint> &vKeys, vector<cv::Point2
     const int N = vKeys.size();
 
     vNormalizedPoints.resize(N);
-
+    // 1. 求所有特征点的平均坐标
     for(int i=0; i<N; i++)
     {
         meanX += vKeys[i].pt.x;
         meanY += vKeys[i].pt.y;
     }
 
-    meanX = meanX/N;
+    meanX = meanX/N; // 特征点质心
     meanY = meanY/N;
-
+    // 2. 坐标减去质心
     float meanDevX = 0;
     float meanDevY = 0;
 
@@ -775,7 +775,7 @@ void Initializer::Normalize(const vector<cv::KeyPoint> &vKeys, vector<cv::Point2
         meanDevY += fabs(vNormalizedPoints[i].y);
     }
 
-    meanDevX = meanDevX/N;
+    meanDevX = meanDevX/N; // 到质心的平均距离
     meanDevY = meanDevY/N;
 
     float sX = 1.0/meanDevX;

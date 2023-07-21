@@ -206,7 +206,12 @@ int KeyFrame::GetWeight(KeyFrame *pKF)
     else
         return 0;
 }
-
+/**
+ * @description: 该关键帧哪个地图点观测到哪个 3D 点
+ * @param {MapPoint} *pMP
+ * @param {size_t} &idx
+ * @return {*}
+ */
 void KeyFrame::AddMapPoint(MapPoint *pMP, const size_t &idx)
 {
     unique_lock<mutex> lock(mMutexFeatures);
@@ -285,7 +290,10 @@ MapPoint* KeyFrame::GetMapPoint(const size_t &idx)
     unique_lock<mutex> lock(mMutexFeatures);
     return mvpMapPoints[idx];
 }
-
+/**
+ * @description:
+ * @return {*}
+ */
 void KeyFrame::UpdateConnections()
 {
     map<KeyFrame*,int> KFcounter;

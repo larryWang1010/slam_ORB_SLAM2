@@ -74,7 +74,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     //Create KeyFrame Database
     mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
 
-    //Create the Map
+    // Create the Map 全局地图
     mpMap = new Map();
 
     //Create Drawers. These are used by the Viewer

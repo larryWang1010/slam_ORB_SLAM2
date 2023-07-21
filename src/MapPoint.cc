@@ -94,7 +94,12 @@ KeyFrame* MapPoint::GetReferenceKeyFrame()
     unique_lock<mutex> lock(mMutexFeatures);
     return mpRefKF;
 }
-
+/**
+ * @description: 记录 pKF 中 idx 地图点观测到该 MapPoint
+ * @param {KeyFrame*} pKF 观测到该地图点的关键帧
+ * @param {size_t} idx 该关键帧中观测到这个地图点的地图点的索引
+ * @return {*}
+ */
 void MapPoint::AddObservation(KeyFrame* pKF, size_t idx)
 {
     unique_lock<mutex> lock(mMutexFeatures);
