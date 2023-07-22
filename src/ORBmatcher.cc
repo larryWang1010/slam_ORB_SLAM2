@@ -1342,9 +1342,9 @@ int ORBmatcher::SearchBySim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint*> &
 }
 
 /**
- * !@description: 帧间特征点匹配，返回匹配特征点的数量
+ * !@description: 帧间特征点匹配，返回匹配特征点的数量，注意特征点和地图点的转换
  * @param {Frame} &CurrentFrame 当前帧
- * @param {Frame} &LastFrame 前一帧
+ * @param {Frame} &LastFrame 上一帧
  * @param {float} th
  * @param {bool} bMono 是否为单目
  * @return {*} 匹配的特征点数量
@@ -1634,7 +1634,14 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, KeyFrame *pKF, const set
 
     return nmatches;
 }
-// 统计特征点最多的三个区间，ind1 ind2 ind3 区间索引
+/**
+ * @description: 统计特征点最多的三个区间
+ * @param {int} L 区间数量
+ * @param {int} &ind1 区间索引
+ * @param {int} &ind2 区间索引
+ * @param {int} &ind3 区间索引
+ * @return {*}
+ */
 void ORBmatcher::ComputeThreeMaxima(vector<int>* histo, const int L, int &ind1, int &ind2, int &ind3)
 {
     int max1 = 0;  // 最多

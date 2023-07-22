@@ -43,7 +43,10 @@ void LocalMapping::SetTracker(Tracking *pTracker)
 {
     mpTracker=pTracker;
 }
-// local mapping 线程的业务逻辑循环
+/**
+ * @description: 线程的业务逻辑循环，处理关键帧
+ * @return {*}
+ */
 void LocalMapping::Run()
 {
 
@@ -142,7 +145,7 @@ void LocalMapping::ProcessNewKeyFrame()
 
     // Associate MapPoints to the new keyframe and update normal and descriptor
     const vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
-    // TODO 处理每一个特征点，关联关键帧
+    // TODO 处理当前关键帧每一个特征点，关联关键帧
     for(size_t i=0; i<vpMapPointMatches.size(); i++)
     {
         MapPoint* pMP = vpMapPointMatches[i];

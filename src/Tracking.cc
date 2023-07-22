@@ -1002,7 +1002,7 @@ bool Tracking::NeedNewKeyFrame()
     const int nKFs = mpMap->KeyFramesInMap();
 
     // Do not insert keyframes if not enough frames have passed from last relocalisation
-    // 如果刚完成重定位 并且 ，不插入关键帧
+    // 如果刚完成重定位 并且 xxx，不插入关键帧
     if(mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && nKFs > mMaxFrames)
         return false;
     // 在 UpdateLocalKeyFrames 函数中会将与当前关键帧共视程度最高的关键帧设定为当前帧的参考关键帧
@@ -1078,12 +1078,15 @@ bool Tracking::NeedNewKeyFrame()
     else
         return false;
 }
-
+/**
+ * @description: tracking线程也会创建关键帧
+ * @return {*}
+ */
 void Tracking::CreateNewKeyFrame()
 {
     if(!mpLocalMapper->SetNotStop(true))
         return;
-
+    // 把当前帧作为关键帧
     KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
 
     mpReferenceKF = pKF;

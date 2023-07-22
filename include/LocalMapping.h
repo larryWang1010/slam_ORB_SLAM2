@@ -39,7 +39,7 @@ class Map;
 
 class LocalMapping
 {
-public:
+   public:
     LocalMapping(Map* pMap, const float bMonocular);
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
@@ -72,8 +72,8 @@ public:
         return mlNewKeyFrames.size();
     }
 
-protected:
-
+   protected:
+    // ! local mappping thread's core funciton
     bool CheckNewKeyFrames();
     void ProcessNewKeyFrame();
     void CreateNewMapPoints();
@@ -83,9 +83,9 @@ protected:
 
     void KeyFrameCulling();
 
-    cv::Mat ComputeF12(KeyFrame* &pKF1, KeyFrame* &pKF2);
+    cv::Mat ComputeF12(KeyFrame*& pKF1, KeyFrame*& pKF2);
 
-    cv::Mat SkewSymmetricMatrix(const cv::Mat &v);
+    cv::Mat SkewSymmetricMatrix(const cv::Mat& v);
 
     bool mbMonocular;
 
@@ -99,17 +99,18 @@ protected:
     bool mbFinished;
     std::mutex mMutexFinish;
 
-    Map* mpMap; // 地图对象
+    Map* mpMap;  // 地图对象
 
-    LoopClosing* mpLoopCloser; // 闭环探测器
-    Tracking* mpTracker;       // 轨迹跟踪器
+    LoopClosing* mpLoopCloser;  // 闭环探测器
+    Tracking* mpTracker;        // 轨迹跟踪器
 
-    // Tracking 线程向 LocalMapping 中插入关键帧是先插入到该队列中
-    std::list<KeyFrame*> mlNewKeyFrames; // 待处理的关键帧列表
+    // 待处理的关键帧列表，T和L线程通信，Tracking 线程向 LocalMapping 中插入关键帧是先插入到该队列中
+    std::list<KeyFrame*> mlNewKeyFrames;
 
-    KeyFrame* mpCurrentKeyFrame; // 正在处理的关键帧
+    KeyFrame* mpCurrentKeyFrame;  // 正在处理的关键帧
 
-    std::list<MapPoint*> mlpRecentAddedMapPoints;  // 处理完的关键帧列表，如果生成更多地图点，放入该 list 等待进一步的筛选
+    std::list<MapPoint*>
+        mlpRecentAddedMapPoints;  // 处理完的关键帧列表，如果生成更多地图点，放入该 list 等待进一步的筛选
 
     std::mutex mMutexNewKFs;
 
@@ -120,7 +121,7 @@ protected:
     bool mbNotStop;
     std::mutex mMutexStop;
 
-    bool mbAcceptKeyFrames; // tracking 和 local mapping线程建图
+    bool mbAcceptKeyFrames;  // tracking 和 local mapping线程建图
     std::mutex mMutexAccept;
 };
 
