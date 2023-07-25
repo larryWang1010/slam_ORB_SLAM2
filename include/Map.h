@@ -31,7 +31,8 @@
 
 namespace ORB_SLAM2
 {
-
+// 地图就是一堆关键帧和地图点
+// 对地图的操作：增、删
 class MapPoint;
 class KeyFrame;
 
@@ -40,10 +41,10 @@ class Map
 public:
  Map();
 
- void AddKeyFrame(KeyFrame* pKF);
- void AddMapPoint(MapPoint* pMP);
- void EraseMapPoint(MapPoint* pMP);
- void EraseKeyFrame(KeyFrame* pKF);
+ void AddKeyFrame(KeyFrame* pKF);    //* 增
+ void AddMapPoint(MapPoint* pMP);    //* 增
+ void EraseMapPoint(MapPoint* pMP);  //* 删
+ void EraseKeyFrame(KeyFrame* pKF);  //* 删
  void SetReferenceMapPoints(const std::vector<MapPoint*>& vpMPs);
  void InformNewBigChange();
  int GetLastBigChangeIdx();

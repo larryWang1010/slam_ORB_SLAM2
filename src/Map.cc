@@ -28,13 +28,16 @@ namespace ORB_SLAM2
 Map::Map():mnMaxKFid(0),mnBigChangeIdx(0)
 {
 }
-
+/**
+ * @description: 添加关键帧到地图中
+ * @param {KeyFrame} *pKF
+ * @return {*}
+ */
 void Map::AddKeyFrame(KeyFrame *pKF)
 {
     unique_lock<mutex> lock(mMutexMap);
     mspKeyFrames.insert(pKF);
-    if(pKF->mnId>mnMaxKFid)
-        mnMaxKFid=pKF->mnId;
+    if (pKF->mnId > mnMaxKFid) mnMaxKFid = pKF->mnId;
 }
 
 void Map::AddMapPoint(MapPoint *pMP)

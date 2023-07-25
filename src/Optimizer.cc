@@ -456,7 +456,13 @@ int Optimizer::PoseOptimization(Frame *pFrame)
     return nInitialCorrespondences-nBad;
 }
 
-// 相机位姿 + 地图点 优化
+/**
+ * @description: 相机位姿 + 地图点 优化
+ * @param {KeyFrame} *pKF 关键帧
+ * @param {bool*} pbStopFlag
+ * @param {Map*} pMap 地图
+ * @return {*}
+ */
 void Optimizer::LocalBundleAdjustment(KeyFrame *pKF, bool* pbStopFlag, Map* pMap)
 {    
     // Local KeyFrames: First Breath Search from Current Keyframe

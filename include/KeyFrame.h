@@ -112,16 +112,13 @@ public:
         return a>b;
     }
 
-    static bool lId(KeyFrame* pKF1, KeyFrame* pKF2){
-        return pKF1->mnId<pKF2->mnId;
-    }
-
+    static bool lId(KeyFrame* pKF1, KeyFrame* pKF2) { return pKF1->mnId < pKF2->mnId; }
 
     // The following variables are accesed from only 1 thread or never change (no mutex needed).
 public:
 
     static long unsigned int nNextId;
-    long unsigned int mnId;
+    long unsigned int mnId;  // 计数器，图像Id
     const long unsigned int mnFrameId;
 
     const double mTimeStamp;
@@ -208,10 +205,10 @@ protected:
 
     // Grid over the image to speed up feature matching
     std::vector< std::vector <std::vector<size_t> > > mGrid;
-
-    std::map<KeyFrame*,int> mConnectedKeyFrameWeights;
+    // ! 描述关键帧之间共视关系的变量
+    std::map<KeyFrame*, int> mConnectedKeyFrameWeights;   //
     std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;  // 相邻的共视帧
-    std::vector<int> mvOrderedWeights;
+    std::vector<int> mvOrderedWeights;                    // 关键帧之间的权重，用地图点的数量表示
 
     // Spanning Tree and Loop Edges
     bool mbFirstConnection;

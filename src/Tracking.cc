@@ -1091,7 +1091,7 @@ void Tracking::CreateNewKeyFrame()
 
     mpReferenceKF = pKF;
     mCurrentFrame.mpReferenceKF = pKF;
-
+    // 处理双目和RGBD相机
     if(mSensor!=System::MONOCULAR)
     {
         mCurrentFrame.UpdatePoseMatrices();
@@ -1298,7 +1298,7 @@ void Tracking::UpdateLocalKeyFrames()
     // 用于保存构成局部地图的关键帧集合K1,K2
     mvpLocalKeyFrames.clear();
     mvpLocalKeyFrames.reserve(3*keyframeCounter.size());
-    //* 2. 筛选关键帧
+    //* 2. 关键帧筛选（策略）
     //* 2.1 计算 K1
     // All keyframes that observe a map point are included in the local map. Also check which keyframe shares most
     // points

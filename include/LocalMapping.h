@@ -108,9 +108,8 @@ class LocalMapping
     std::list<KeyFrame*> mlNewKeyFrames;
 
     KeyFrame* mpCurrentKeyFrame;  // 正在处理的关键帧
-
-    std::list<MapPoint*>
-        mlpRecentAddedMapPoints;  // 处理完的关键帧列表，如果生成更多地图点，放入该 list 等待进一步的筛选
+    // 关联上当前关键帧的地图点集合，放入该 list 等待进一步的筛选
+    std::list<MapPoint*> mlpRecentAddedMapPoints;
 
     std::mutex mMutexNewKFs;
 

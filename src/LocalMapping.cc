@@ -58,13 +58,13 @@ void LocalMapping::Run()
         // 设置 Local Mapping 线程繁忙标志位， 通过 AcceptKeyFrames 查询
         SetAcceptKeyFrames(false);
 
-        // Check if there are keyframes in the queue
+        // 判断队列中是否有关键帧 Check if there are keyframes in the queue
         if(CheckNewKeyFrames())
         {
             // BoW conversion and insertion in Map
             ProcessNewKeyFrame();
 
-            // Check recent MapPoints
+            // 剔除关联当前帧后的不符合要求的地图点 Check recent MapPoints
             MapPointCulling();
 
             // Triangulate new MapPoints
@@ -143,9 +143,10 @@ void LocalMapping::ProcessNewKeyFrame()
     // Compute Bags of Words structures
     mpCurrentKeyFrame->ComputeBoW();
 
-    // Associate MapPoints to the new keyframe and update normal and descriptor
+    // *遍历当前关键帧每一个特征点，当前关键帧关联到地图点上 Associate MapPoints to the new keyframe and update normal
+    // *and descriptor
     const vector<MapPoint*> vpMapPointMatches = mpCurrentKeyFrame->GetMapPointMatches();
-    // TODO 处理当前关键帧每一个特征点，关联关键帧
+
     for(size_t i=0; i<vpMapPointMatches.size(); i++)
     {
         MapPoint* pMP = vpMapPointMatches[i];
@@ -173,7 +174,7 @@ void LocalMapping::ProcessNewKeyFrame()
     // Insert Keyframe in Map
     mpMap->AddKeyFrame(mpCurrentKeyFrame);
 }
-
+// 剔除 mlpRecentAddedMapPoints 中不符合要求的特征点
 void LocalMapping::MapPointCulling()
 {
     // Check Recent Added MapPoints
@@ -186,25 +187,26 @@ void LocalMapping::MapPointCulling()
     else
         nThObs = 3;
     const int cnThObs = nThObs;
-
-    while(lit!=mlpRecentAddedMapPoints.end())
-    {
+    // 剔除不符合要求的地图点，要求满足以下三个条件
+    while (lit != mlpRecentAddedMapPoints.end()) {
         MapPoint* pMP = *lit;
+        // 1. 坏点
         if(pMP->isBad())
         {
             lit = mlpRecentAddedMapPoints.erase(lit);
         }
-        else if(pMP->GetFoundRatio()<0.25f )
-        {
+        // 2. 比例
+        else if (pMP->GetFoundRatio() < 0.25f) {
             pMP->SetBadFlag();
             lit = mlpRecentAddedMapPoints.erase(lit);
         }
-        else if(((int)nCurrentKFid-(int)pMP->mnFirstKFid)>=2 && pMP->Observations()<=cnThObs)
-        {
+        // 3.
+        else if (((int)nCurrentKFid - (int)pMP->mnFirstKFid) >= 2 && pMP->Observations() <= cnThObs) {
             pMP->SetBadFlag();
             lit = mlpRecentAddedMapPoints.erase(lit);
         }
-        else if(((int)nCurrentKFid-(int)pMP->mnFirstKFid)>=3)
+        // 4. 经多3个关键帧，认为是高质量的点，从队列中删除，不再检测
+        else if (((int)nCurrentKFid - (int)pMP->mnFirstKFid) >= 3)
             lit = mlpRecentAddedMapPoints.erase(lit);
         else
             lit++;
