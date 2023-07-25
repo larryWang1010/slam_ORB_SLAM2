@@ -120,7 +120,7 @@ cv::Mat KeyFrame::GetTranslation()
     return Tcw.rowRange(0,3).col(3).clone();
 }
 /**
- * @description: 添加当前关键帧与其他关键帧之间的共视权重，仅仅在UpdateConnections被调用
+ * @description: 添加当前关键帧与其他关键帧之间的共视权重，仅仅在 UpdateConnections 被调用一次
  * @param {KeyFrame} *pKF 其他关键帧
  * @param {int} &weight 权重
  * @return {*}
@@ -139,7 +139,10 @@ void KeyFrame::AddConnection(KeyFrame *pKF, const int &weight)
 
     UpdateBestCovisibles();
 }
-
+/**
+ * @description: 按照权重对连接的关键帧进行 排序 // todo 分别在 AddConnection 和 EraseConnection 两个函数中被调用
+ * @return {*}
+ */
 void KeyFrame::UpdateBestCovisibles()
 {
     unique_lock<mutex> lock(mMutexConnections);
@@ -564,7 +567,11 @@ bool KeyFrame::isBad()
     unique_lock<mutex> lock(mMutexConnections);
     return mbBad;
 }
-
+/**
+ * @description:
+ * @param {KeyFrame*} pKF
+ * @return {*}
+ */
 void KeyFrame::EraseConnection(KeyFrame* pKF)
 {
     bool bUpdate = false;
@@ -644,7 +651,11 @@ cv::Mat KeyFrame::UnprojectStereo(int i)
     else
         return cv::Mat();
 }
-
+/**
+ * @description: 评估当前关键帧场景深度，q=2 表示中值
+ * @param {int} q q =2
+ * @return {*} Median Depth
+ */
 float KeyFrame::ComputeSceneMedianDepth(const int q)
 {
     vector<MapPoint*> vpMapPoints;

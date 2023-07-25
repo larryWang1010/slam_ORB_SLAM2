@@ -274,7 +274,7 @@ void Tracking::Track()
 {
     // tracking thread 状态机
 
-    //* 步骤1：如果是系统接收到的第一帧图像，设置Tracking线程状态为未初始化状态
+    // 如果是系统接收到的第一帧图像，设置Tracking线程状态为未初始化状态
     if(mState==NO_IMAGES_YET) 
     {
         mState = NOT_INITIALIZED;
@@ -284,8 +284,7 @@ void Tracking::Track()
 
     // Get Map Mutex -> Map cannot be changed
     unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
-    //* 步骤2：位姿估计，包含以下步骤：
-    // * 2.1 系统初始化
+    // *步骤1 系统初始化
     if(mState==NOT_INITIALIZED) 
     {
         if(mSensor==System::STEREO || mSensor==System::RGBD)
@@ -298,16 +297,13 @@ void Tracking::Track()
 
         if(mState!=OK)
             return;
-    } else  // *2.2 位姿估计
-    {
-        // *2.2.1 帧间位姿估计
+    } else {
+        // *步骤2 帧间位姿估计，VO跟踪有2种模式：1. 普通VO，有建图  2.仅仅定位
         // System is initialized. Track Frame.
         bool bOK;
-        // VO跟踪有几种模式：1. 正常的VO，会有局部建图  2.仅仅定位
         // Initial camera pose estimation using motion model or relocalization (if
         // tracking is lost)
-
-        // 2.2.1.1 正常 VO 模式，是有建图的
+        // 2.1.1 普通VO模式，有建图
         if (!mbOnlyTracking) {
             // 初始化成功，要完成位姿估计，检测两个条件
             // Local Mapping is activated. This is the normal behaviour, unless
@@ -331,7 +327,7 @@ void Tracking::Track()
             {
                 bOK = Relocalization();
             }
-        } else  // 2.2.1.2 仅定位，不会建立地图
+        } else  // 2.1.2 仅定位，不会建立地图
         {
             // Localization Mode: Local Mapping is deactivated
             if (mState == LOST) {
@@ -387,7 +383,7 @@ void Tracking::Track()
         }
 
         mCurrentFrame.mpReferenceKF = mpReferenceKF;
-        // *2.2.2. 局部地图跟踪 If we have an initial estimation of the camera pose
+        // -2.2. 局部地图跟踪 If we have an initial estimation of the camera pose
         // and matching. Track the local map.
         if (!mbOnlyTracking) {
             if (bOK) bOK = TrackLocalMap();
@@ -407,7 +403,8 @@ void Tracking::Track()
 
         // Update drawer
         mpFrameDrawer->Update(this);
-        //* 2.3 生成关键帧
+
+        // *步骤3 生成关键帧
         // If tracking were good, check if we insert a keyframe
         if (bOK) {
             // Update motion model
@@ -453,8 +450,7 @@ void Tracking::Track()
             }
         }
 
-        // Reset if the camera get lost soon after initialization
-        // 跟踪失败 且 重定位失败，系统重启
+        // *步骤4 跟踪失败且重定位失败，系统重启 Reset if the camera get lost soon after initialization
         if (mState == LOST) {
             if (mpMap->KeyFramesInMap() <= 5) {
                 cout << "Track lost soon after initialisation, reseting..." << endl;
@@ -985,8 +981,8 @@ bool Tracking::TrackLocalMap()
 }
 
 /**
- * @description: 判断当前帧是否作为关键帧
- * @return {*} 满足作为关键帧的一系列条件 true
+ * @description: 判断当前帧是否作为关键帧，如果满足条件，接下来要创建关键帧
+ * @return {bool} 满足作为关键帧的一系列条件 true
  */
 bool Tracking::NeedNewKeyFrame()
 {
@@ -1012,8 +1008,7 @@ bool Tracking::NeedNewKeyFrame()
         nMinObs=2;
     int nRefMatches = mpReferenceKF->TrackedMapPoints(nMinObs); // 获取参考关键帧特征点的数量
 
-    // Local Mapping accept keyframes?
-    // mpLocalMapper 是否繁忙
+    // 局部地图管理器通过AcceptKeyFrames查询该线程是否繁忙，获取其标志位 Local Mapping accept keyframes?
     bool bLocalMappingIdle = mpLocalMapper->AcceptKeyFrames();
 
     // Check how many "close" points are being tracked and how many could be potentially created.
@@ -1079,7 +1074,7 @@ bool Tracking::NeedNewKeyFrame()
         return false;
 }
 /**
- * @description: tracking线程也会创建关键帧
+ * @description: tracking 线程创建关键帧，送入LocalMapping线程
  * @return {*}
  */
 void Tracking::CreateNewKeyFrame()
@@ -1153,7 +1148,7 @@ void Tracking::CreateNewKeyFrame()
             }
         }
     }
-
+    // 送入 LocalMapping 线程
     mpLocalMapper->InsertKeyFrame(pKF);
 
     mpLocalMapper->SetNotStop(false);

@@ -118,7 +118,7 @@ class MapPoint
     //* Position in absolute coordinates
     cv::Mat mWorldPos;
 
-    //! Keyframes observing the point and associated index in keyframe
+    // * Keyframes observing the point and associated index in keyframe
     std::map<KeyFrame*, size_t> mObservations;
 
     // Mean viewing direction
