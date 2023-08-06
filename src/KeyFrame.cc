@@ -27,7 +27,7 @@ namespace ORB_SLAM2
 {
 
 long unsigned int KeyFrame::nNextId=0;
-
+// Frame和KeyFrame相同的变量很多，用Frame初始化
 KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
     mnFrameId(F.mnId),  mTimeStamp(F.mTimeStamp), mnGridCols(FRAME_GRID_COLS), mnGridRows(FRAME_GRID_ROWS),
     mfGridElementWidthInv(F.mfGridElementWidthInv), mfGridElementHeightInv(F.mfGridElementHeightInv),
@@ -633,7 +633,11 @@ bool KeyFrame::IsInImage(const float &x, const float &y) const
 {
     return (x>=mnMinX && x<mnMaxX && y>=mnMinY && y<mnMaxY);
 }
-
+/**
+ * @description: 反映射 pixcel to 3d点
+ * @param {int} i keypoints 在mvkeys中的索引
+ * @return {cv::Mat} 返回3d点坐标
+ */
 cv::Mat KeyFrame::UnprojectStereo(int i)
 {
     const float z = mvDepth[i];

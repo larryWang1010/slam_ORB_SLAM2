@@ -68,7 +68,7 @@ public:
  std::vector<KeyFrame*> GetCovisiblesByWeight(const int& w);
  int GetWeight(KeyFrame* pKF);
 
- // Spanning tree functions
+ // Spanning tree functions 生成树函数
  void AddChild(KeyFrame* pKF);
  void EraseChild(KeyFrame* pKF);
  void ChangeParent(KeyFrame* pKF);

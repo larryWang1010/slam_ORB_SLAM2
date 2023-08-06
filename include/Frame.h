@@ -172,7 +172,7 @@ public:
     // Reference Keyframe.
     KeyFrame* mpReferenceKF; // TODO 这个用途是什么？
 
-    // Scale pyramid info.
+    // Scale pyramid info. // todo how to use
     int mnScaleLevels;
     float mfScaleFactor;
     float mfLogScaleFactor;

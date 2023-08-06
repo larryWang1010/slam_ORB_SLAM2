@@ -185,7 +185,7 @@ protected:
     Initializer *mpInitializer; // 初始化器
 
     //! Local Map
-    KeyFrame* mpReferenceKF;                   //! 参考关键帧
+    KeyFrame* mpReferenceKF;                   //! 参考关键帧，用于重定位
     std::vector<KeyFrame*> mvpLocalKeyFrames;  //! 用于保存构成局部地图的关键帧集合
     std::vector<MapPoint*> mvpLocalMapPoints;  //! 局部地图点，用于局部地图匹配，主要在TrackLocalMap中使用
 

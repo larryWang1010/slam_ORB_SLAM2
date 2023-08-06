@@ -1362,7 +1362,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
     int nmatches = 0;
     // 1. 构建角度直方图，检查图像特征点角度的一致性
     // Rotation Histogram (to check rotation consistency)
-    vector<int> rotHist[HISTO_LENGTH];
+    vector<int> rotHist[HISTO_LENGTH]; // 数组，元素为 vector
     for(int i=0;i<HISTO_LENGTH;i++)
         rotHist[i].reserve(500);
     const float factor = 1.0f/HISTO_LENGTH;
@@ -1430,7 +1430,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
 
                 int bestDist = 256; // 最佳距离
                 int bestIdx2 = -1;  // 索引
-                // 计算该特征点描述子（上一帧）与当前帧所有特征点描述子之间的距离，记录下最端距离及该特征点在vIndices2中的索引
+                // 遍历当前帧，刚刚记录在 vIndices2中的特征点，计算（上一帧）该特征点描述子与当前帧所有特征点描述子之间的距离，记录下最近距离和在 vIndices2 中的索引
                 for(vector<size_t>::const_iterator vit=vIndices2.begin(), vend=vIndices2.end(); vit!=vend; vit++)
                 {
                     const size_t i2 = *vit;
@@ -1461,7 +1461,7 @@ int ORBmatcher::SearchByProjection(Frame &CurrentFrame, const Frame &LastFrame, 
                 // 3. 如果最佳匹配距离不超出匹配阈值， mvpMapPoints
                 if(bestDist <= TH_HIGH)
                 {
-                    //* 以上一帧的地图点构建当前帧的地图点
+                    // ! 以上一帧的地图点构建当前帧的地图点
                     CurrentFrame.mvpMapPoints[bestIdx2]=pMP;
                     nmatches++;
                     // 4. 根据角度偏差量直方图对匹配地图点进行筛选

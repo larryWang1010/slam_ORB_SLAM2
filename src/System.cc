@@ -28,11 +28,20 @@
 
 namespace ORB_SLAM2
 {
-
-System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
-               const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
-        mbDeactivateLocalizationMode(false)
-{
+/**
+ * @description: 系统初始化，完成tracking localmapping loopcloing类以及线程的初始化（构造函数）
+ * @param {string} &strVocFile
+ * @param {string} &strSettingsFile
+ * @param {eSensor} sensor
+ * @param {bool} bUseViewer
+ * @return {*}
+ */
+System::System(const string& strVocFile, const string& strSettingsFile, const eSensor sensor, const bool bUseViewer)
+    : mSensor(sensor),
+      mpViewer(static_cast<Viewer*>(NULL)),
+      mbReset(false),
+      mbActivateLocalizationMode(false),
+      mbDeactivateLocalizationMode(false) {
     // Output welcome message
     cout << endl <<
     "ORB-SLAM2 Copyright (C) 2014-2016 Raul Mur-Artal, University of Zaragoza." << endl <<
@@ -49,7 +58,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     else if(mSensor==RGBD)
         cout << "RGB-D" << endl;
 
-    //Check settings file
+    // * 1. 打开配置文件
     cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
     if(!fsSettings.isOpened())
     {
@@ -57,8 +66,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
        exit(-1);
     }
 
-
-    //Load ORB Vocabulary
+    // * 2. 加载 ORB Vocabulary
     cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
 
     mpVocabulary = new ORBVocabulary();
@@ -70,8 +78,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
         exit(-1);
     }
     cout << "Vocabulary loaded!" << endl << endl;
-
-    //Create KeyFrame Database
+    // * 3. 初始化一系列对象，创建线程
+    // Create KeyFrame Database
     mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
 
     // Create the Map 全局地图
@@ -113,7 +121,13 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
 }
-
+/**
+ * @description: 双目程序入口
+ * @param {Mat} &imLeft
+ * @param {Mat} &imRight
+ * @param {double} &timestamp
+ * @return {*}
+ */
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)
 {
     if(mSensor!=STEREO)
@@ -155,7 +169,7 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
             mbReset = false;
         }
     }
-    // 传入左右目图像以及时间戳
+    // * 传入左右目图像以及时间戳
     cv::Mat Tcw = mpTracker->GrabImageStereo(imLeft,imRight,timestamp);
 
     unique_lock<mutex> lock2(mMutexState);
@@ -267,13 +281,19 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
 
     return Tcw;
 }
-
+/**
+ * @description: 使能仅定位模式，支持在运行过程中进行切换
+ * @return {*}
+ */
 void System::ActivateLocalizationMode()
 {
     unique_lock<mutex> lock(mMutexMode);
     mbActivateLocalizationMode = true;
 }
-
+/**
+ * @description: 关闭仅定位模式
+ * @return {*}
+ */
 void System::DeactivateLocalizationMode()
 {
     unique_lock<mutex> lock(mMutexMode);
@@ -292,13 +312,19 @@ bool System::MapChanged()
     else
         return false;
 }
-
+/**
+ * @description: 系统重置
+ * @return {*}
+ */
 void System::Reset()
 {
     unique_lock<mutex> lock(mMutexReset);
     mbReset = true;
 }
-
+/**
+ * @description: 系统关闭
+ * @return {*}
+ */
 void System::Shutdown()
 {
     mpLocalMapper->RequestFinish();

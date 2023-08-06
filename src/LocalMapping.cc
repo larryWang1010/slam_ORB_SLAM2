@@ -68,7 +68,7 @@ void LocalMapping::Run()
             // 剔除关联当前帧后的不符合要求的地图点 Check recent MapPoints
             MapPointCulling();
 
-            // Triangulate new MapPoints
+            // 三角化一些新的点 Triangulate new MapPoints
             CreateNewMapPoints();
             // todo why? 处理完队列中最后一个关键帧，为什么要这一步的操作
             if(!CheckNewKeyFrames())

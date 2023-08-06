@@ -61,7 +61,6 @@ Frame::Frame(const Frame &frame)
         SetPose(frame.mTcw);
 }
 
-
 /**
  * @description: 双目构造函数，
  * @param {Mat} &imLeft 左目图像
@@ -72,7 +71,7 @@ Frame::Frame(const Frame &frame)
  * @param {ORBVocabulary*} voc orb 字典
  * @param {Mat} &K 相机内参
  * @param {Mat} &distCoef 相机畸变参数
- * @param {float} &bf
+ * @param {float} &bf 基线 像素
  * @param {float} &thDepth
  * @return {*}
  */
@@ -92,7 +91,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
     mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
 
-    // ORB extraction
+    // 1. 提点 ORB extraction
     thread threadLeft(&Frame::ExtractORB,this,0,imLeft);
     thread threadRight(&Frame::ExtractORB,this,1,imRight);
     threadLeft.join();

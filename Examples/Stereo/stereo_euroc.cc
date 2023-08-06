@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 
 
     const int nImages = vstrImageLeft.size();
-    // 系统初始化:变量,轨迹跟踪器,局部建图器等
+    // * 系统初始化: tracking，localmapping,loopclosing对象和线程，可视化对象和线程
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
 
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 #else
         std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
-        // tracking 入口
+        // * tracking 入口，调用 SLAM 对象 TrackStereo 接口
         // Pass the images to the SLAM system
         SLAM.TrackStereo(imLeftRect,imRightRect,tframe);
 

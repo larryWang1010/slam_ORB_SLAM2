@@ -167,7 +167,13 @@ void Tracking::SetViewer(Viewer *pViewer)
 {
     mpViewer=pViewer;
 }
-
+/**
+ * @description: 系统入口，构造frame
+ * @param {Mat} &imRectLeft
+ * @param {Mat} &imRectRight
+ * @param {double} &timestamp
+ * @return {*}
+ */
 cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRectRight, const double &timestamp)
 {
     mImGray = imRectLeft;
