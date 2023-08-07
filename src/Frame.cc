@@ -91,7 +91,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     mvLevelSigma2 = mpORBextractorLeft->GetScaleSigmaSquares();
     mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
 
-    // 1. 提点 ORB extraction
+    // * 1. 提点 ORB extraction（仿函数，查看如何提点）
     thread threadLeft(&Frame::ExtractORB,this,0,imLeft);
     thread threadRight(&Frame::ExtractORB,this,1,imRight);
     threadLeft.join();
@@ -101,9 +101,9 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
 
     if(mvKeys.empty())
         return;
-
+    // * 2. 特征点畸变矫正
     UndistortKeyPoints();
-
+    // * 3.
     ComputeStereoMatches();
 
     mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));    
@@ -129,7 +129,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     }
 
     mb = mbf/fx;
-
+    // * 4. 网格化
     AssignFeaturesToGrid();
 }
 /**
@@ -283,6 +283,7 @@ void Frame::AssignFeaturesToGrid()
             mGrid[nGridPosX][nGridPosY].push_back(i);
     }
 }
+
 /**
  * @description: 调用特征提取器进行特征提取和描述子计算
  * @param {int} flag 单目 双目标志位
@@ -460,6 +461,7 @@ void Frame::UndistortKeyPoints()
 
     // Undistort points
     mat=mat.reshape(2);
+    // * 调用cv接口
     cv::undistortPoints(mat,mat,mK,mDistCoef,cv::Mat(),mK);
     mat=mat.reshape(1);
 
@@ -503,13 +505,16 @@ void Frame::ComputeImageBounds(const cv::Mat &imLeft)
         mnMaxY = imLeft.rows;
     }
 }
-
+/**
+ * @description: 左右目之间的匹配
+ * @return {*}
+ */
 void Frame::ComputeStereoMatches()
 {
-    mvuRight = vector<float>(N,-1.0f);
-    mvDepth = vector<float>(N,-1.0f);
+    mvuRight = vector<float>(N, -1.0f);
+    mvDepth = vector<float>(N, -1.0f);
 
-    const int thOrbDist = (ORBmatcher::TH_HIGH+ORBmatcher::TH_LOW)/2;
+    const int thOrbDist = (ORBmatcher::TH_HIGH + ORBmatcher::TH_LOW) / 2;
 
     const int nRows = mpORBextractorLeft->mvImagePyramid[0].rows;
 
@@ -703,7 +708,11 @@ void Frame::ComputeStereoFromRGBD(const cv::Mat &imDepth)
         }
     }
 }
-
+/**
+ * @description: pixcel恢复3D点
+ * @param {int} &i 深度index
+ * @return {*}
+ */
 cv::Mat Frame::UnprojectStereo(const int &i)
 {
     const float z = mvDepth[i];

@@ -200,10 +200,10 @@ protected:
     //! Map 存储全局地图
     Map* mpMap;
 
-    //Calibration matrix
+    // * 相机参数：内参、畸变稀疏、基线
     cv::Mat mK;
     cv::Mat mDistCoef;
-    float mbf;
+    float mbf;  // todo
 
     //New KeyFrame rules (according to fps)
     int mMinFrames;

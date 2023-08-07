@@ -37,9 +37,9 @@ public:
     void DivideNode(ExtractorNode &n1, ExtractorNode &n2, ExtractorNode &n3, ExtractorNode &n4);
 
     std::vector<cv::KeyPoint> vKeys;
-    cv::Point2i UL, UR, BL, BR;
+    cv::Point2i UL, UR, BL, BR;  // 该结点代表的图像的4个顶点
     std::list<ExtractorNode>::iterator lit;
-    bool bNoMore;
+    bool bNoMore;  // 该结点是否只包含一个特征点
 };
 
 class ORBextractor
@@ -95,8 +95,8 @@ protected:
     std::vector<cv::Point> pattern;
     // 通过 yaml 配置
     int nfeatures; // 一幅图像最多特征点数量
-    double scaleFactor;
-    int nlevels; // 金字塔层数
+    double scaleFactor;  // 金字塔缩放因子
+    int nlevels;         // 金字塔层数
     int iniThFAST; // cell 最多 features 数量
     int minThFAST; // cell 最少 features 数量
 
@@ -105,7 +105,7 @@ protected:
     std::vector<int> umax;
 
     std::vector<float> mvScaleFactor; // 金字塔每一层对应的缩放因子
-    std::vector<float> mvInvScaleFactor;    
+    std::vector<float> mvInvScaleFactor;  // 倒数，
     std::vector<float> mvLevelSigma2;
     std::vector<float> mvInvLevelSigma2;
 };

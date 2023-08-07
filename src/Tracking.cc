@@ -44,14 +44,14 @@ namespace ORB_SLAM2
 {
 /**
  * @description: 构造TRACKING线程
- * @param {System} *pSys
- * @param {ORBVocabulary*} pVoc
- * @param {FrameDrawer} *pFrameDrawer
- * @param {MapDrawer} *pMapDrawer
- * @param {Map} *pMap
+ * @param {System} *pSys  系统对象
+ * @param {ORBVocabulary*} pVoc 离线词典
+ * @param {FrameDrawer} *pFrameDrawer 可视化，绘制位姿
+ * @param {MapDrawer} *pMapDrawer 可视化，绘制地图点
+ * @param {Map} *pMap 地图对象
  * @param {KeyFrameDatabase*} pKFDB
- * @param {string} &strSettingPath
- * @param {int} sensor
+ * @param {string} &strSettingPath 配置文件
+ * @param {int} sensor 相机类型
  * @return {*}
  */
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor):
@@ -59,8 +59,9 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
     mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
 {
-    // 步骤一：读取相机内参 Load camera parameters from settings file
+    // * 1. 读取配置文件
     cv::FileStorage fSettings(strSettingPath, cv::FileStorage::READ);
+    // 1.1 读取相机内参，构造内参矩阵mk
     float fx = fSettings["Camera.fx"];
     float fy = fSettings["Camera.fy"];
     float cx = fSettings["Camera.cx"];
@@ -75,7 +76,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     K.at<float>(0, 2) = cx;
     K.at<float>(1, 2) = cy;
     K.copyTo(mK);
-
+    // 1.2 读取畸变参数，构造畸变参数矩阵 mDistCoef
     cv::Mat DistCoef(4, 1, CV_32F);
     DistCoef.at<float>(0) = fSettings["Camera.k1"];
     DistCoef.at<float>(1) = fSettings["Camera.k2"];
@@ -87,10 +88,10 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
         DistCoef.at<float>(4) = k3;
     }
     DistCoef.copyTo(mDistCoef);
-
+    // 1.3 加载相机基线
     mbf = fSettings["Camera.bf"];
 
-    float fps = fSettings["Camera.fps"];
+    float fps = fSettings["Camera.fps"];  // 帧率
     if (fps == 0) fps = 30;
 
     // Max/Min Frames to insert keyframes and to check relocalisation
@@ -117,7 +118,7 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     else
         cout << "- color order: BGR (ignored if grayscale)" << endl;
 
-    // 步骤二：加载特征点提取的相关参数 Load ORB parameters
+    // * 2. 加载特征点提取的相关参数 Load ORB parameters
     int nFeatures = fSettings["ORBextractor.nFeatures"];         //特征点数量
     float fScaleFactor = fSettings["ORBextractor.scaleFactor"];  // 缩放因子
     int nLevels = fSettings["ORBextractor.nLevels"];
@@ -138,9 +139,9 @@ Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer,
     cout << "- Scale Factor: " << fScaleFactor << endl;
     cout << "- Initial Fast Threshold: " << fIniThFAST << endl;
     cout << "- Minimum Fast Threshold: " << fMinThFAST << endl;
-
+    // 深度阈值，将特征点分成近点和远点，对于近点认为估计值比较准确可以直接应用它的的三维坐标。对于误差较大的远点，需要根据帧间的共视关系估计出一个较为精确的空间位置
     if (sensor == System::STEREO || sensor == System::RGBD) {
-        mThDepth = mbf * (float)fSettings["ThDepth"] / fx;
+        mThDepth = mbf * (float)fSettings["ThDepth"] / fx;  // how wo calculate
         cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
     }
 
@@ -169,9 +170,9 @@ void Tracking::SetViewer(Viewer *pViewer)
 }
 /**
  * @description: 系统入口，构造frame
- * @param {Mat} &imRectLeft
- * @param {Mat} &imRectRight
- * @param {double} &timestamp
+ * @param {Mat} &imRectLeft 左图像
+ * @param {Mat} &imRectRight 右图像
+ * @param {double} &timestamp 时间戳
  * @return {*}
  */
 cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRectRight, const double &timestamp)
