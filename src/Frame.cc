@@ -442,7 +442,10 @@ void Frame::ComputeBoW()
         mpORBvocabulary->transform(vCurrentDesc,mBowVec,mFeatVec,4);
     }
 }
-
+/**
+ * @description: 特征点畸变校正
+ * @return {*}
+ */
 void Frame::UndistortKeyPoints()
 {
     if(mDistCoef.at<float>(0)==0.0)

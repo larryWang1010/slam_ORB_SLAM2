@@ -171,7 +171,13 @@ void Initializer::FindHomography(vector<bool> &vbMatchesInliers, float &score, c
     }
 }
 
-// 计算基础矩阵，输出三个参数： 内点标志位，打分情况，归一化矩阵
+/**
+ * @description: 输出三个参数
+ * @param {vector<bool>} &vbMatchesInliers 内点标志位
+ * @param {float} &score 打分情况
+ * @param {Mat} &F21 归一化矩阵
+ * @return {*}
+ */
 void Initializer::FindFundamental(vector<bool> &vbMatchesInliers, float &score, cv::Mat &F21)
 {
     // Number of putative matches

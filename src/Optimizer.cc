@@ -38,6 +38,15 @@ namespace ORB_SLAM2
 {
 
 // 全局 BA 待优化变量：
+/**
+ * @description:
+ * @param {Map*} pMap 系统建立的地图
+ * @param {int} nIterations 迭代次数
+ * @param {bool*} pbStopFlag
+ * @param {unsigned long} nLoopKF
+ * @param {bool} bRobust
+ * @return {*}
+ */
 void Optimizer::GlobalBundleAdjustemnt(Map* pMap, int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust)
 {
     vector<KeyFrame*> vpKFs = pMap->GetAllKeyFrames();
@@ -45,13 +54,21 @@ void Optimizer::GlobalBundleAdjustemnt(Map* pMap, int nIterations, bool* pbStopF
     BundleAdjustment(vpKFs,vpMP,nIterations,pbStopFlag, nLoopKF, bRobust);
 }
 
-
-void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<MapPoint *> &vpMP,
-                                 int nIterations, bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust)
-{
+/**
+ * @description:
+ * @param {vector<KeyFrame *>} &vpKFs 地图中所有的关键帧
+ * @param {vector<MapPoint *>} &vpMP 地图中所有的地图点
+ * @param {int} nIterations 迭代次数
+ * @param {bool*} pbStopFlag
+ * @param {unsigned long} nLoopKF
+ * @param {bool} bRobust
+ * @return {*}
+ */
+void Optimizer::BundleAdjustment(const vector<KeyFrame*>& vpKFs, const vector<MapPoint*>& vpMP, int nIterations,
+                                 bool* pbStopFlag, const unsigned long nLoopKF, const bool bRobust) {
     vector<bool> vbNotIncludedMP;
     vbNotIncludedMP.resize(vpMP.size());
-
+    // * 1. 优化器和优化方法
     g2o::SparseOptimizer optimizer;
     g2o::BlockSolver_6_3::LinearSolverType * linearSolver;
 
@@ -67,7 +84,7 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
 
     long unsigned int maxKFid = 0;
 
-    // Set KeyFrame vertices
+    // * 2. a.设置关键帧顶点，待优化变量为地图中所有关键帧的位姿
     for(size_t i=0; i<vpKFs.size(); i++)
     {
         KeyFrame* pKF = vpKFs[i];
@@ -85,7 +102,7 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
     const float thHuber2D = sqrt(5.99);
     const float thHuber3D = sqrt(7.815);
 
-    // Set MapPoint vertices
+    // * b.设置地图点顶点，待优化变量为地图点位姿
     for(size_t i=0; i<vpMP.size(); i++)
     {
         MapPoint* pMP = vpMP[i];
@@ -101,7 +118,7 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
        const map<KeyFrame*,size_t> observations = pMP->GetObservations();
 
         int nEdges = 0;
-        //SET EDGES
+        // * 3. 设置边
         for(map<KeyFrame*,size_t>::const_iterator mit=observations.begin(); mit!=observations.end(); mit++)
         {
 
@@ -113,21 +130,19 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
 
             const cv::KeyPoint &kpUn = pKF->mvKeysUn[mit->second];
 
-            if(pKF->mvuRight[mit->second]<0)
-            {
-                Eigen::Matrix<double,2,1> obs;
+            if (pKF->mvuRight[mit->second] < 0) {  // 单目
+                Eigen::Matrix<double, 2, 1> obs;
                 obs << kpUn.pt.x, kpUn.pt.y;
 
                 g2o::EdgeSE3ProjectXYZ* e = new g2o::EdgeSE3ProjectXYZ();
 
                 e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(id)));
                 e->setVertex(1, dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer.vertex(pKF->mnId)));
-                e->setMeasurement(obs);
-                const float &invSigma2 = pKF->mvInvLevelSigma2[kpUn.octave];
-                e->setInformation(Eigen::Matrix2d::Identity()*invSigma2);
+                e->setMeasurement(obs);  // 添加观测值， 匹配到的特征点
+                const float& invSigma2 = pKF->mvInvLevelSigma2[kpUn.octave];
+                e->setInformation(Eigen::Matrix2d::Identity() * invSigma2);
 
-                if(bRobust)
-                {
+                if (bRobust) {
                     g2o::RobustKernelHuber* rk = new g2o::RobustKernelHuber;
                     e->setRobustKernel(rk);
                     rk->setDelta(thHuber2D);
@@ -139,9 +154,7 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
                 e->cy = pKF->cy;
 
                 optimizer.addEdge(e);
-            }
-            else
-            {
+            } else {  // 双目
                 Eigen::Matrix<double,3,1> obs;
                 const float kp_ur = pKF->mvuRight[mit->second];
                 obs << kpUn.pt.x, kpUn.pt.y, kp_ur;
@@ -233,10 +246,14 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
             pMP->mnBAGlobalForKF = nLoopKF;
         }
     }
-
 }
-// 相机位姿优化，输入参数 Frame，根据 pFrame 中已经成功定位的地图点 mvpMapPoints，
-// 通过相机的位姿估计，构建3D-2D的投影关系，最小化投影误差函数，修正相机位姿估计。
+
+/**
+ * @description: 相机位姿优化，输入参数 Frame，根据 pFrame 中已经成功定位的地图点
+ * mvpMapPoints，通过相机的位姿估计，构建3D-2D的投影关系，最小化投影误差函数，修正相机位姿估计。
+ * @param {Frame} *pFrame
+ * @return {*}
+ */
 int Optimizer::PoseOptimization(Frame *pFrame)
 {
     // 优化器

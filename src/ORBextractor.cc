@@ -73,7 +73,13 @@ const int PATCH_SIZE = 31;
 const int HALF_PATCH_SIZE = 15;
 const int EDGE_THRESHOLD = 19;
 
-
+/**
+ * @description: 灰度质心法，计算特征点的方向
+ * @param {Mat&} image
+ * @param {Point2f} pt 待处理的特征点
+ * @param {vector<int>} &
+ * @return {*}
+ */
 static float IC_Angle(const Mat& image, Point2f pt,  const vector<int> & u_max)
 {
     int m_01 = 0, m_10 = 0;
@@ -107,8 +113,8 @@ static float IC_Angle(const Mat& image, Point2f pt,  const vector<int> & u_max)
 const float factorPI = (float)(CV_PI/180.f);
 /**
  * @description:计算特征点的描述子
- * @param {KeyPoint&} kpt
- * @param {Mat&} img
+ * @param {KeyPoint&} kpt 特征点
+ * @param {Mat&} img    图像
  * @param {Point*} pattern
  * @param {uchar*} desc
  * @return {*}
@@ -485,17 +491,16 @@ ORBextractor::ORBextractor(int _nfeatures, float _scaleFactor, int _nlevels, int
     }
 }
 /**
- * @description: 灰度质心法计算描述子角度
+ * @description: 灰度质心法计算特征点方向
  * @param {Mat&} image 图像
- * @param {vector<KeyPoint>&} keypoints 特征点
+ * @param {vector<KeyPoint>&} keypoints 特征点集合
  * @param {vector<int>&} umax
  * @return {*}
  */
 static void computeOrientation(const Mat& image, vector<KeyPoint>& keypoints, const vector<int>& umax)
 {
-    for (vector<KeyPoint>::iterator keypoint = keypoints.begin(),
-         keypointEnd = keypoints.end(); keypoint != keypointEnd; ++keypoint)
-    {
+    for (vector<KeyPoint>::iterator keypoint = keypoints.begin(), keypointEnd = keypoints.end();
+         keypoint != keypointEnd; ++keypoint) {
         keypoint->angle = IC_Angle(image, keypoint->pt, umax);
     }
 }
@@ -818,7 +823,7 @@ void ORBextractor::ComputeKeyPointsOctTree(vector<vector<KeyPoint> >& allKeypoin
     // 遍历图像金字塔所有层
     for (int level = 0; level < nlevels; ++level)
     {
-        // * 1. 提 FAST 点
+        // * 1. 整幅图像划分为30个grid，每个grid依次提FAST点
         // 根据金字塔，设置提取点的图像区域，所有的金字塔图片沿着 threshold 的边界扩展 3 个像素
         const int minBorderX = EDGE_THRESHOLD-3;
         const int minBorderY = minBorderX;
@@ -1091,11 +1096,11 @@ static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Ma
         computeOrbDescriptor(keypoints[i], image, &pattern[0], descriptors.ptr((int)i));
 }
 /**
- * @description: 提点流程
- * @param {InputArray} _image
+ * @description: 流程：构造金字塔、提点、均匀分布、计算描述子
+ * @param {InputArray} _image 输入图像
  * @param {InputArray} _mask
- * @param {vector<KeyPoint>} _keypoints
- * @param {OutputArray} _descriptors
+ * @param {vector<KeyPoint>} _keypoints 特征点容器
+ * @param {OutputArray} _descriptors 描述子
  * @return {*}
  */
 void ORBextractor::operator()(InputArray _image, InputArray _mask, vector<KeyPoint>& _keypoints,
@@ -1140,6 +1145,7 @@ void ORBextractor::operator()(InputArray _image, InputArray _mask, vector<KeyPoi
 
         // preprocess the resized image
         Mat workingMat = mvImagePyramid[level].clone();
+        // todo why ?
         GaussianBlur(workingMat, workingMat, Size(7, 7), 2, 2, BORDER_REFLECT_101);
 
         // Compute the descriptors 计算描述子
@@ -1163,7 +1169,7 @@ void ORBextractor::operator()(InputArray _image, InputArray _mask, vector<KeyPoi
 
 /**
  * @description: 构建图像金字塔
- * @param {Mat} image
+ * @param {Mat} image 原始图像
  * @return {*}
  */
 void ORBextractor::ComputePyramid(cv::Mat image)
@@ -1185,7 +1191,7 @@ void ORBextractor::ComputePyramid(cv::Mat image)
         {
             // 根据上一层中间部分图像，对图像进行缩放，插值
             resize(mvImagePyramid[level-1], mvImagePyramid[level], sz, 0, 0, INTER_LINEAR);
-            // 对当前层图像边缘进行填充，把源图像拷贝到目的图像的中央，四面填充指定的像素。图片如果已经拷贝到中间，只填充边界，为了能够正确提取边界的FAST角点
+            // 对当前层图像边缘进行填充，把源图像拷贝到目的图像的中央，四面填充指定的像素。图片如果已经拷贝到中间，只填充边界（为了能够正确提取边界的FAST角点）
             copyMakeBorder(mvImagePyramid[level], temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
                            BORDER_REFLECT_101 + BORDER_ISOLATED);
         }
@@ -1194,7 +1200,7 @@ void ORBextractor::ComputePyramid(cv::Mat image)
             copyMakeBorder(image, temp, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD, EDGE_THRESHOLD,
                            BORDER_REFLECT_101);            
         }
-        // 原代码mvImagePyramid 并未扩充，应该添加下面一行代码
+        // 原代码 mvImagePyramid 并未扩充，应该添加下面一行代码
         // mvImagePyramid[level] = temp;
     }
 

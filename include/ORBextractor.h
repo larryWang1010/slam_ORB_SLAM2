@@ -51,8 +51,7 @@ public:
     ORBextractor(int nfeatures, float scaleFactor, int nlevels,
                  int iniThFAST, int minThFAST);
 
-    ~ORBextractor(){}
-    // TODO 八叉树怎么存的
+    ~ORBextractor() {}
     // Compute the ORB features and descriptors on an image.
     // ORB are dispersed on the image using an octree.
     // Mask is ignored in the current implementation.

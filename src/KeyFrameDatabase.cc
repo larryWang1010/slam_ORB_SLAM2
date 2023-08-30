@@ -195,7 +195,11 @@ vector<KeyFrame*> KeyFrameDatabase::DetectLoopCandidates(KeyFrame* pKF, float mi
 
     return vpLoopCandidates;
 }
-
+/**
+ * @description:计算候选关键帧
+ * @param {Frame} *F
+ * @return {*} 关键帧列表
+ */
 vector<KeyFrame*> KeyFrameDatabase::DetectRelocalizationCandidates(Frame *F)
 {
     list<KeyFrame*> lKFsSharingWords;

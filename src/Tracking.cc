@@ -1381,7 +1381,7 @@ void Tracking::UpdateLocalKeyFrames()
     }
 }
 /**
- * @description: 跟踪策略3：重定位跟踪
+ * @description: 跟踪策略3：重定位跟踪，词袋模型实现
  * @return {*}
  */
 bool Tracking::Relocalization()
@@ -1391,6 +1391,7 @@ bool Tracking::Relocalization()
 
     // Relocalization is performed when tracking is lost
     // Track Lost: Query KeyFrame Database for keyframe candidates for relocalisation
+    // 1. 得到候选关键帧
     vector<KeyFrame*> vpCandidateKFs = mpKeyFrameDB->DetectRelocalizationCandidates(&mCurrentFrame);
 
     if(vpCandidateKFs.empty())
@@ -1441,8 +1442,7 @@ bool Tracking::Relocalization()
     bool bMatch = false;
     ORBmatcher matcher2(0.9,true);
 
-    while(nCandidates>0 && !bMatch)
-    {
+    while (nCandidates > 0 && !bMatch) {
         for(int i=0; i<nKFs; i++)
         {
             if(vbDiscarded[i])

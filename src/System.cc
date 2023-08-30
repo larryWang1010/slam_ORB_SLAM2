@@ -30,10 +30,10 @@ namespace ORB_SLAM2
 {
 /**
  * @description: 系统初始化，完成tracking localmapping loopcloing类以及线程的初始化（构造函数）
- * @param {string} &strVocFile
- * @param {string} &strSettingsFile
- * @param {eSensor} sensor
- * @param {bool} bUseViewer
+ * @param {string} &strVocFile 字典文件
+ * @param {string} &strSettingsFile 配置文件
+ * @param {eSensor} sensor 相机类型，单目，双目，rgbd
+ * @param {bool} bUseViewer，是否开启可视化，默认true，开启
  * @return {*}
  */
 System::System(const string& strVocFile, const string& strSettingsFile, const eSensor sensor, const bool bUseViewer)
