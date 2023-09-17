@@ -52,9 +52,9 @@ class MapPoint
     // 该地图点观测到的关键帧
     std::map<KeyFrame*,size_t> GetObservations();
     int Observations();
-    // ! when happen
-    void AddObservation(KeyFrame* pKF,size_t idx);
-    void EraseObservation(KeyFrame* pKF);
+
+    void AddObservation(KeyFrame* pKF, size_t idx);
+    void EraseObservation(KeyFrame* pKF);  // Local BA 函数中剔除关键帧
 
     int GetIndexInKeyFrame(KeyFrame* pKF);
     bool IsInKeyFrame(KeyFrame* pKF);

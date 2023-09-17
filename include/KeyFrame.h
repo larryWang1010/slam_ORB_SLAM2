@@ -82,7 +82,7 @@ public:
 
  // MapPoint observation functions
  void AddMapPoint(MapPoint* pMP, const size_t& idx);
- void EraseMapPointMatch(const size_t& idx);
+ void EraseMapPointMatch(const size_t& idx);  // Local BA 函数中剔除地图点
  void EraseMapPointMatch(MapPoint* pMP);
  void ReplaceMapPointMatch(const size_t& idx, MapPoint* pMP);
  std::set<MapPoint*> GetMapPoints();

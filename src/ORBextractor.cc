@@ -420,7 +420,7 @@ static int bit_pattern_31_[256*4] =
 /**
  * @description: constructor 配置参数
  * @param {int} _nfeatures 一幅图像最多特征点数量
- * @param {float} _scaleFactor 金字塔所反映值
+ * @param {float} _scaleFactor 金字塔缩放值
  * @param {int} _nlevels 金字塔层数
  * @param {int} _iniThFAST 一个 cell 最多 features 数量
  * @param {int} _minThFAST  一个 cell 最少 features 数量
@@ -1086,7 +1086,7 @@ void ORBextractor::ComputeKeyPointsOld(std::vector<std::vector<KeyPoint> > &allK
     for (int level = 0; level < nlevels; ++level)
         computeOrientation(mvImagePyramid[level], allKeypoints[level], umax);
 }
-
+// ？ 为什么要用 static 的方法
 static void computeDescriptors(const Mat& image, vector<KeyPoint>& keypoints, Mat& descriptors,
                                const vector<Point>& pattern)
 {

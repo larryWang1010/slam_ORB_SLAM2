@@ -225,7 +225,7 @@ void KeyFrame::AddMapPoint(MapPoint *pMP, const size_t &idx)
     unique_lock<mutex> lock(mMutexFeatures);
     mvpMapPoints[idx]=pMP;
 }
-
+// 剔除关键帧中的地图点
 void KeyFrame::EraseMapPointMatch(const size_t &idx)
 {
     unique_lock<mutex> lock(mMutexFeatures);

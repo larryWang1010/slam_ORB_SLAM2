@@ -914,8 +914,8 @@ bool Tracking::TrackWithMotionModel()
     {
         if(mCurrentFrame.mvpMapPoints[i])
         {
-            if(mCurrentFrame.mvbOutlier[i])
-            {
+            // mvbOutlier 在 PoseOptimization 被改变
+            if (mCurrentFrame.mvbOutlier[i]) {
                 MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
 
                 mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
@@ -923,8 +923,7 @@ bool Tracking::TrackWithMotionModel()
                 pMP->mbTrackInView = false;
                 pMP->mnLastFrameSeen = mCurrentFrame.mnId;
                 nmatches--;
-            }
-            else if(mCurrentFrame.mvpMapPoints[i]->Observations()>0)
+            } else if (mCurrentFrame.mvpMapPoints[i]->Observations() > 0)
                 nmatchesMap++;
         }
     }    
