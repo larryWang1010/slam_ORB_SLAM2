@@ -50,7 +50,7 @@ class MapPoint
     KeyFrame* GetReferenceKeyFrame();
 
     // 该地图点观测到的关键帧
-    std::map<KeyFrame*,size_t> GetObservations();
+    std::map<KeyFrame*, size_t> GetObservations();
     int Observations();
 
     void AddObservation(KeyFrame* pKF, size_t idx);

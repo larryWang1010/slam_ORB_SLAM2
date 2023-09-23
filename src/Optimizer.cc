@@ -796,11 +796,20 @@ void Optimizer::LocalBundleAdjustment(KeyFrame* pKF, bool* pbStopFlag, Map* pMap
     }
 }
 
+/**
+ * @description:
+ * @param {Map*} pMap
+ * @param {KeyFrame*} pLoopKF
+ * @param {KeyFrame*} pCurKF
+ * @param {KeyFrameAndPose&} NonCorrectedSim3
+ * @param {KeyFrameAndPose&} CorrectedSim3
+ * @param {bool&} bFixScale
+ * @return {*}
+ */
 void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* pCurKF,
-                                       const LoopClosing::KeyFrameAndPose &NonCorrectedSim3,
-                                       const LoopClosing::KeyFrameAndPose &CorrectedSim3,
-                                       const map<KeyFrame *, set<KeyFrame *> > &LoopConnections, const bool &bFixScale)
-{
+                                       const LoopClosing::KeyFrameAndPose& NonCorrectedSim3,
+                                       const LoopClosing::KeyFrameAndPose& CorrectedSim3,
+                                       const map<KeyFrame*, set<KeyFrame*> >& LoopConnections, const bool& bFixScale) {
     // Setup optimizer
     g2o::SparseOptimizer optimizer;
     optimizer.setVerbose(false);
@@ -1060,7 +1069,16 @@ void Optimizer::OptimizeEssentialGraph(Map* pMap, KeyFrame* pLoopKF, KeyFrame* p
         pMP->UpdateNormalAndDepth();
     }
 }
-
+/**
+ * @description:
+ * @param {KeyFrame} *pKF1
+ * @param {KeyFrame} *pKF2
+ * @param {vector<MapPoint *>} &vpMatches1
+ * @param {Sim3} &g2oS12
+ * @param {float} th2
+ * @param {bool} bFixScale
+ * @return {*}
+ */
 int Optimizer::OptimizeSim3(KeyFrame *pKF1, KeyFrame *pKF2, vector<MapPoint *> &vpMatches1, g2o::Sim3 &g2oS12, const float th2, const bool bFixScale)
 {
     g2o::SparseOptimizer optimizer;
